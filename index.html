@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My AI Assistant</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Markdown + sanitization + syntax highlighting -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/styles/github-dark.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/lib/highlight.min.js"></script>
+</head>
+
+<body>
+<div class="app">
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-top">
+            <div class="brand">
+                <span class="brand-icon">🤖</span>
+                <span>My AI</span>
+            </div>
+
+            <button id="new-chat-btn" class="new-chat" type="button">
+                <span>＋</span> New Chat
+            </button>
+        </div>
+
+        <div class="chat-history" id="chat-history">
+            <div class="history-title">Recent Chats</div>
+            <div id="history-list"></div>
+        </div>
+
+        <div class="sidebar-bottom">
+            <button id="clear-chat-btn" class="side-button" type="button">🗑️ Clear Chat</button>
+            <div class="model-status">
+                <span class="status-dot"></span>
+                Gemini 2.5 Flash · Online
+            </div>
+        </div>
+    </aside>
+
+    <main class="main">
+        <header class="topbar">
+            <button id="menu-btn" class="menu-btn" type="button" aria-label="Open menu">☰</button>
+
+            <div class="top-title">
+                <span>🤖</span>
+                <span>My AI Assistant</span>
+            </div>
+
+            <div class="top-status">
+                <span class="online-dot"></span>
+                <span>Online</span>
+            </div>
+        </header>
+
+        <section class="chat-area" id="chat-box"></section>
+
+        <div class="input-section">
+            <div id="attachment-preview" class="attachment-preview"></div>
+
+            <div class="input-wrapper">
+                <input id="file-input" type="file" hidden accept="image/*,.txt,.md,.json,.csv,.js,.html,.css,.py">
+                <button id="attach-btn" class="tool-btn" type="button" title="Attach file">📎</button>
+
+                <textarea id="user-input" rows="1" placeholder="Message My AI..." autocomplete="off"></textarea>
+
+                <button id="stop-btn" class="stop-btn hidden" type="button">■</button>
+                <button id="send-btn" class="send-btn" type="button" aria-label="Send message">➤</button>
+            </div>
+
+            <div class="input-info">
+                My AI can make mistakes. Check important information.
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
