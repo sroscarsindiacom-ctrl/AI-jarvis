@@ -1,3 +1,4 @@
+```js
 /* =========================================================
    AI NANDU - FINAL FRONTEND SCRIPT
    Existing AI/API functionality preserved
@@ -683,11 +684,14 @@ function showWelcome() {
                 >
             </div>
 
-            <h1>How can I help you today?</h1>
+            <h1>
+                How can I help you today?
+            </h1>
 
             <p>
-                Ask AI Nandu anything, write code,
-                learn something new, or have a conversation.
+                I'm AI Nandu. Ask me anything,
+                write code, learn something new,
+                or just have a conversation.
             </p>
 
             <div class="suggestions">
@@ -696,28 +700,44 @@ function showWelcome() {
                     class="suggestion"
                     data-message="Write a Python program for me."
                 >
-                    💻 Write Python code
+                    💻
+                    <span>
+                        <strong>Write code</strong>
+                        <small>Create or fix code</small>
+                    </span>
                 </button>
 
                 <button
                     class="suggestion"
                     data-message="Explain HTML in simple language."
                 >
-                    📚 Explain HTML
+                    📚
+                    <span>
+                        <strong>Learn something</strong>
+                        <small>Explain any topic simply</small>
+                    </span>
                 </button>
 
                 <button
                     class="suggestion"
                     data-message="Help me solve a math problem."
                 >
-                    🧮 Solve a math problem
+                    🧮
+                    <span>
+                        <strong>Solve a problem</strong>
+                        <small>Math, logic and questions</small>
+                    </span>
                 </button>
 
                 <button
                     class="suggestion"
                     data-message="Tell me the latest important technology information."
                 >
-                    🔍 Search information
+                    🔍
+                    <span>
+                        <strong>Search information</strong>
+                        <small>Find useful information</small>
+                    </span>
                 </button>
 
             </div>
@@ -1857,3 +1877,4 @@ input?.focus();
 console.log(
     "AI Nandu final frontend loaded successfully."
 );
+```
