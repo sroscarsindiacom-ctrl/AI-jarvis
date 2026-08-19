@@ -3,15 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My AI Assistant</title>
+
+    <title>AI Nandu</title>
 
     <link rel="stylesheet" href="style.css">
 
+    <!-- Markdown + sanitization + syntax highlighting -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
 
     <link rel="stylesheet"
           href="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/styles/github-dark.min.css">
+
     <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/lib/highlight.min.js"></script>
 </head>
 
@@ -20,27 +23,26 @@
 <div class="app">
 
     <!-- ================= SIDEBAR ================= -->
+
     <aside class="sidebar" id="sidebar">
 
         <div class="sidebar-top">
 
             <div class="brand">
-                <img src="logo.png" class="logo-img" alt="My AI Logo">
-                <span>My AI</span>
+                <img src="logo.png" class="logo-img" alt="AI Nandu Logo">
+                <span>AI Nandu</span>
             </div>
 
             <button id="new-chat-btn" class="new-chat" type="button">
                 <span>＋</span>
-                <span>New Chat</span>
+                New Chat
             </button>
 
         </div>
 
         <div class="chat-history" id="chat-history">
 
-            <div class="history-title">
-                Recent Chats
-            </div>
+            <div class="history-title">Recent Chats</div>
 
             <div id="history-list"></div>
 
@@ -48,15 +50,13 @@
 
         <div class="sidebar-bottom">
 
-            <button id="clear-chat-btn"
-                    class="side-button"
-                    type="button">
+            <button id="clear-chat-btn" class="side-button" type="button">
                 🗑️ Clear Chat
             </button>
 
             <div class="model-status">
                 <span class="status-dot"></span>
-                Gemini · Online
+                Gemini 2.5 Flash · Online
             </div>
 
         </div>
@@ -65,250 +65,394 @@
 
 
     <!-- ================= MAIN ================= -->
+
     <main class="main">
 
         <!-- TOP BAR -->
+
         <header class="topbar">
 
-            <button id="menu-btn"
-                    class="menu-btn"
-                    type="button"
-                    aria-label="Open menu">
+            <button
+                id="menu-btn"
+                class="menu-btn"
+                type="button"
+                aria-label="Open menu">
                 ☰
             </button>
 
             <div class="top-title">
-
-                <img src="logo.png"
-                     class="top-logo"
-                     alt="My AI">
-
-                <span>My AI Assistant</span>
-
+                <span>AI Nandu</span>
             </div>
 
             <div class="top-status">
-
                 <span class="online-dot"></span>
                 <span>Online</span>
-
             </div>
 
         </header>
 
 
         <!-- CHAT -->
+
         <section class="chat-area" id="chat-box"></section>
 
 
-        <!-- ================= INPUT ================= -->
+        <!-- ================= INPUT SECTION ================= -->
+
         <div class="input-section">
 
-            <div id="attachment-preview"
-                 class="attachment-preview">
-            </div>
+            <div id="attachment-preview" class="attachment-preview"></div>
 
 
             <div class="input-wrapper">
 
-                <!-- Hidden inputs -->
-
-                <input id="file-input"
-                       type="file"
-                       hidden
-                       accept="image/*,.txt,.md,.json,.csv,.js,.html,.css,.py,.java,.cpp,.c,.sql,.pdf">
-
-                <input id="camera-input"
-                       type="file"
-                       hidden
-                       accept="image/*"
-                       capture="environment">
-
-                <input id="photo-input"
-                       type="file"
-                       hidden
-                       accept="image/*">
-
-                <input id="code-input"
-                       type="file"
-                       hidden
-                       accept=".js,.html,.css,.py,.java,.cpp,.c,.sql,.json,.txt,.md">
+                <!-- Existing file input - DO NOT REMOVE -->
+                <input
+                    id="file-input"
+                    type="file"
+                    hidden
+                    accept="image/*,.txt,.md,.json,.csv,.js,.html,.css,.py">
 
 
-                <!-- PLUS TOOL BUTTON -->
+                <!-- FUNCTIONS / PLUS BUTTON -->
 
-                <div class="tools-wrapper">
+                <button
+                    id="attach-btn"
+                    class="tool-btn functions-btn"
+                    type="button"
+                    title="Functions"
+                    aria-label="Open functions"
+                    onclick="toggleFunctions(event)">
 
-                    <button id="attach-btn"
-                            class="plus-btn"
-                            type="button"
-                            title="Tools"
-                            aria-label="Open tools">
-                        <span class="plus-icon">+</span>
-                    </button>
+                    <span class="plus-icon">＋</span>
 
-
-                    <!-- FLOATING TOOLS MENU -->
-
-                    <div id="tools-menu"
-                         class="tools-menu">
-
-                        <div class="tools-menu-title">
-                            <span>Tools</span>
-                            <button id="close-tools"
-                                    type="button">
-                                ×
-                            </button>
-                        </div>
+                </button>
 
 
-                        <button class="tool-option"
-                                id="camera-btn"
-                                type="button">
+                <!-- TEXT INPUT -->
 
-                            <span class="tool-option-icon camera-icon">
-                                📷
-                            </span>
-
-                            <span>
-                                <strong>Camera</strong>
-                                <small>Take a photo</small>
-                            </span>
-
-                        </button>
-
-
-                        <button class="tool-option"
-                                id="photo-btn"
-                                type="button">
-
-                            <span class="tool-option-icon">
-                                🖼️
-                            </span>
-
-                            <span>
-                                <strong>Photos</strong>
-                                <small>Choose an image</small>
-                            </span>
-
-                        </button>
-
-
-                        <button class="tool-option"
-                                id="file-btn"
-                                type="button">
-
-                            <span class="tool-option-icon">
-                                📎
-                            </span>
-
-                            <span>
-                                <strong>Files</strong>
-                                <small>Upload a file</small>
-                            </span>
-
-                        </button>
-
-
-                        <button class="tool-option"
-                                id="search-btn"
-                                type="button">
-
-                            <span class="tool-option-icon">
-                                🔍
-                            </span>
-
-                            <span>
-                                <strong>Search</strong>
-                                <small>Ask AI to search</small>
-                            </span>
-
-                        </button>
-
-
-                        <button class="tool-option"
-                                id="code-btn"
-                                type="button">
-
-                            <span class="tool-option-icon">
-                                💻
-                            </span>
-
-                            <span>
-                                <strong>Code</strong>
-                                <small>Upload code</small>
-                            </span>
-
-                        </button>
-
-
-                        <button class="tool-option"
-                                id="learn-btn"
-                                type="button">
-
-                            <span class="tool-option-icon">
-                                📚
-                            </span>
-
-                            <span>
-                                <strong>Learn</strong>
-                                <small>Explain & learn</small>
-                            </span>
-
-                        </button>
-
-
-                        <button class="tool-option"
-                                id="settings-btn"
-                                type="button">
-
-                            <span class="tool-option-icon">
-                                ⚙️
-                            </span>
-
-                            <span>
-                                <strong>Settings</strong>
-                                <small>Assistant settings</small>
-                            </span>
-
-                        </button>
-
-                    </div>
-
-                </div>
-
-
-                <!-- TEXT -->
-
-                <textarea id="user-input"
-                          rows="1"
-                          placeholder="Message My AI..."
-                          autocomplete="off"></textarea>
+                <textarea
+                    id="user-input"
+                    rows="1"
+                    placeholder="Message AI Nandu..."
+                    autocomplete="off"></textarea>
 
 
                 <!-- STOP -->
 
-                <button id="stop-btn"
-                        class="stop-btn hidden"
-                        type="button">
+                <button
+                    id="stop-btn"
+                    class="stop-btn hidden"
+                    type="button">
+
                     ■
+
                 </button>
 
 
                 <!-- SEND -->
 
-                <button id="send-btn"
-                        class="send-btn"
-                        type="button"
-                        aria-label="Send message">
+                <button
+                    id="send-btn"
+                    class="send-btn"
+                    type="button"
+                    aria-label="Send message">
+
                     ➤
+
                 </button>
 
             </div>
 
 
             <div class="input-info">
-                My AI can make mistakes. Check important information.
+                AI Nandu can make mistakes. Check important information.
+            </div>
+
+        </div>
+
+
+        <!-- ================= FUNCTIONS PANEL ================= -->
+
+        <div
+            class="functions-overlay"
+            id="functions-overlay"
+            onclick="closeFunctionsOutside(event)">
+
+            <div
+                class="functions-panel"
+                id="functions-panel"
+                onclick="event.stopPropagation()">
+
+                <div class="functions-header">
+
+                    <div>
+                        <div class="functions-title">
+                            AI Nandu Tools
+                        </div>
+
+                        <div class="functions-subtitle">
+                            Choose what you want to do
+                        </div>
+                    </div>
+
+                    <button
+                        class="functions-close"
+                        type="button"
+                        onclick="closeFunctions()"
+                        aria-label="Close">
+
+                        ×
+
+                    </button>
+
+                </div>
+
+
+                <div class="functions-grid">
+
+                    <!-- CAMERA -->
+
+                    <button
+                        class="function-card"
+                        type="button"
+                        onclick="openCamera()">
+
+                        <span class="function-icon camera-icon">
+                            📷
+                        </span>
+
+                        <span class="function-name">
+                            Camera
+                        </span>
+
+                        <span class="function-desc">
+                            Take a photo
+                        </span>
+
+                    </button>
+
+
+                    <!-- GALLERY -->
+
+                    <button
+                        class="function-card"
+                        type="button"
+                        onclick="openGallery()">
+
+                        <span class="function-icon gallery-icon">
+                            🖼️
+                        </span>
+
+                        <span class="function-name">
+                            Photos
+                        </span>
+
+                        <span class="function-desc">
+                            Choose from gallery
+                        </span>
+
+                    </button>
+
+
+                    <!-- FILE -->
+
+                    <button
+                        class="function-card"
+                        type="button"
+                        onclick="openFiles()">
+
+                        <span class="function-icon file-icon">
+                            📎
+                        </span>
+
+                        <span class="function-name">
+                            Files
+                        </span>
+
+                        <span class="function-desc">
+                            Upload a file
+                        </span>
+
+                    </button>
+
+
+                    <!-- GOOGLE DRIVE -->
+
+                    <button
+                        class="function-card"
+                        type="button"
+                        onclick="openGoogleDrive()">
+
+                        <span class="function-icon drive-icon">
+                            ☁️
+                        </span>
+
+                        <span class="function-name">
+                            Google Drive
+                        </span>
+
+                        <span class="function-desc">
+                            Open Drive files
+                        </span>
+
+                    </button>
+
+
+                    <!-- SEARCH -->
+
+                    <button
+                        class="function-card"
+                        type="button"
+                        onclick="selectTool('search')">
+
+                        <span class="function-icon search-icon">
+                            🔍
+                        </span>
+
+                        <span class="function-name">
+                            Search
+                        </span>
+
+                        <span class="function-desc">
+                            Search the web
+                        </span>
+
+                    </button>
+
+
+                    <!-- CODE -->
+
+                    <button
+                        class="function-card"
+                        type="button"
+                        onclick="selectTool('code')">
+
+                        <span class="function-icon code-icon">
+                            💻
+                        </span>
+
+                        <span class="function-name">
+                            Code
+                        </span>
+
+                        <span class="function-desc">
+                            Write or debug code
+                        </span>
+
+                    </button>
+
+
+                    <!-- LEARN -->
+
+                    <button
+                        class="function-card"
+                        type="button"
+                        onclick="selectTool('learn')">
+
+                        <span class="function-icon learn-icon">
+                            📚
+                        </span>
+
+                        <span class="function-name">
+                            Learn
+                        </span>
+
+                        <span class="function-desc">
+                            Explain anything
+                        </span>
+
+                    </button>
+
+
+                    <!-- SETTINGS -->
+
+                    <button
+                        class="function-card"
+                        type="button"
+                        onclick="openSettings()">
+
+                        <span class="function-icon settings-icon">
+                            ⚙️
+                        </span>
+
+                        <span class="function-name">
+                            Settings
+                        </span>
+
+                        <span class="function-desc">
+                            Appearance & options
+                        </span>
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ================= SETTINGS PANEL ================= -->
+
+        <div
+            class="settings-overlay"
+            id="settings-overlay"
+            onclick="closeSettingsOutside(event)">
+
+            <div
+                class="settings-panel"
+                onclick="event.stopPropagation()">
+
+                <div class="settings-header">
+
+                    <div>
+                        <div class="settings-title">
+                            Settings
+                        </div>
+
+                        <div class="settings-subtitle">
+                            Customize AI Nandu
+                        </div>
+                    </div>
+
+                    <button
+                        class="functions-close"
+                        type="button"
+                        onclick="closeSettings()">
+
+                        ×
+
+                    </button>
+
+                </div>
+
+
+                <div class="setting-row">
+
+                    <div class="setting-text">
+
+                        <strong>Appearance</strong>
+
+                        <span>
+                            Choose light or dark mode
+                        </span>
+
+                    </div>
+
+
+                    <button
+                        id="theme-toggle"
+                        class="theme-toggle"
+                        type="button"
+                        onclick="toggleTheme()">
+
+                        🌙 Dark
+
+                    </button>
+
+                </div>
+
             </div>
 
         </div>
@@ -318,47 +462,274 @@
 </div>
 
 
-<!-- SETTINGS MODAL -->
+<!-- ================= UI FUNCTIONS ================= -->
 
-<div id="settings-modal"
-     class="settings-modal hidden">
+<script>
 
-    <div class="settings-card">
+    const functionsOverlay =
+        document.getElementById("functions-overlay");
 
-        <div class="settings-header">
+    const functionsPanel =
+        document.getElementById("functions-panel");
 
-            <div>
-                <h2>Settings</h2>
-                <p>My AI Assistant</p>
-            </div>
+    const settingsOverlay =
+        document.getElementById("settings-overlay");
 
-            <button id="close-settings"
-                    type="button">
-                ×
-            </button>
+    const userInput =
+        document.getElementById("user-input");
 
-        </div>
-
-        <div class="setting-row">
-
-            <div>
-                <strong>Theme</strong>
-                <small>Switch between light and dark mode</small>
-            </div>
-
-            <button id="theme-toggle"
-                    class="setting-action"
-                    type="button">
-                🌙 Dark
-            </button>
-
-        </div>
-
-    </div>
-
-</div>
+    const fileInput =
+        document.getElementById("file-input");
 
 
+    /* ================= FUNCTIONS PANEL ================= */
+
+    function toggleFunctions(event) {
+
+        if (event) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+        }
+
+        functionsOverlay.classList.toggle("show");
+
+    }
+
+
+    function closeFunctions() {
+
+        functionsOverlay.classList.remove("show");
+
+    }
+
+
+    function closeFunctionsOutside(event) {
+
+        if (event.target === functionsOverlay) {
+            closeFunctions();
+        }
+
+    }
+
+
+    /* ================= CAMERA ================= */
+
+    function openCamera() {
+
+        closeFunctions();
+
+        fileInput.value = "";
+
+        fileInput.setAttribute(
+            "accept",
+            "image/*"
+        );
+
+        fileInput.setAttribute(
+            "capture",
+            "environment"
+        );
+
+        fileInput.click();
+
+    }
+
+
+    /* ================= GALLERY ================= */
+
+    function openGallery() {
+
+        closeFunctions();
+
+        fileInput.value = "";
+
+        fileInput.setAttribute(
+            "accept",
+            "image/*"
+        );
+
+        fileInput.removeAttribute("capture");
+
+        fileInput.click();
+
+    }
+
+
+    /* ================= FILES ================= */
+
+    function openFiles() {
+
+        closeFunctions();
+
+        fileInput.value = "";
+
+        fileInput.setAttribute(
+            "accept",
+            "image/*,.txt,.md,.json,.csv,.js,.html,.css,.py,.pdf,.doc,.docx,.xls,.xlsx"
+        );
+
+        fileInput.removeAttribute("capture");
+
+        fileInput.click();
+
+    }
+
+
+    /* ================= GOOGLE DRIVE ================= */
+
+    function openGoogleDrive() {
+
+        closeFunctions();
+
+        window.open(
+            "https://drive.google.com/drive/my-drive",
+            "_blank",
+            "noopener,noreferrer"
+        );
+
+    }
+
+
+    /* ================= SEARCH / CODE / LEARN ================= */
+
+    function selectTool(tool) {
+
+        closeFunctions();
+
+        if (!userInput) return;
+
+
+        if (tool === "search") {
+
+            userInput.placeholder =
+                "Ask AI Nandu to search for something...";
+
+            userInput.focus();
+
+        }
+
+
+        if (tool === "code") {
+
+            userInput.placeholder =
+                "Ask AI Nandu to write or debug code...";
+
+            userInput.focus();
+
+        }
+
+
+        if (tool === "learn") {
+
+            userInput.placeholder =
+                "What would you like AI Nandu to explain?";
+
+            userInput.focus();
+
+        }
+
+    }
+
+
+    /* ================= SETTINGS ================= */
+
+    function openSettings() {
+
+        closeFunctions();
+
+        settingsOverlay.classList.add("show");
+
+    }
+
+
+    function closeSettings() {
+
+        settingsOverlay.classList.remove("show");
+
+    }
+
+
+    function closeSettingsOutside(event) {
+
+        if (event.target === settingsOverlay) {
+            closeSettings();
+        }
+
+    }
+
+
+    /* ================= THEME ================= */
+
+    function toggleTheme() {
+
+        document.body.classList.toggle("dark-mode");
+
+        const button =
+            document.getElementById("theme-toggle");
+
+        if (
+            document.body.classList.contains("dark-mode")
+        ) {
+
+            button.textContent = "☀️ Light";
+
+            localStorage.setItem(
+                "aiNanduTheme",
+                "dark"
+            );
+
+        } else {
+
+            button.textContent = "🌙 Dark";
+
+            localStorage.setItem(
+                "aiNanduTheme",
+                "light"
+            );
+
+        }
+
+    }
+
+
+    /* ================= LOAD THEME ================= */
+
+    if (
+        localStorage.getItem("aiNanduTheme") === "dark"
+    ) {
+
+        document.body.classList.add("dark-mode");
+
+        const button =
+            document.getElementById("theme-toggle");
+
+        if (button) {
+            button.textContent = "☀️ Light";
+        }
+
+    }
+
+
+    /* ================= ESCAPE KEY ================= */
+
+    document.addEventListener(
+        "keydown",
+        function(event) {
+
+            if (event.key === "Escape") {
+
+                closeFunctions();
+                closeSettings();
+
+            }
+
+        }
+    );
+
+</script>
+
+
+<!-- EXISTING AI SCRIPT - KEEP IT -->
 <script src="script.js"></script>
 
 </body>
