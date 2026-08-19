@@ -7,79 +7,359 @@
 
     <link rel="stylesheet" href="style.css">
 
-    <!-- Markdown + sanitization + syntax highlighting -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/styles/github-dark.min.css">
+
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/styles/github-dark.min.css">
     <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/lib/highlight.min.js"></script>
 </head>
 
 <body>
+
 <div class="app">
 
+    <!-- ================= SIDEBAR ================= -->
     <aside class="sidebar" id="sidebar">
+
         <div class="sidebar-top">
+
             <div class="brand">
                 <img src="logo.png" class="logo-img" alt="My AI Logo">
-<span>My AI</span>
+                <span>My AI</span>
             </div>
 
             <button id="new-chat-btn" class="new-chat" type="button">
-                <span>＋</span> New Chat
+                <span>＋</span>
+                <span>New Chat</span>
             </button>
+
         </div>
 
         <div class="chat-history" id="chat-history">
-            <div class="history-title">Recent Chats</div>
+
+            <div class="history-title">
+                Recent Chats
+            </div>
+
             <div id="history-list"></div>
+
         </div>
 
         <div class="sidebar-bottom">
-            <button id="clear-chat-btn" class="side-button" type="button">🗑️ Clear Chat</button>
+
+            <button id="clear-chat-btn"
+                    class="side-button"
+                    type="button">
+                🗑️ Clear Chat
+            </button>
+
             <div class="model-status">
                 <span class="status-dot"></span>
-                Gemini 2.5 Flash · Online
+                Gemini · Online
             </div>
+
         </div>
+
     </aside>
 
+
+    <!-- ================= MAIN ================= -->
     <main class="main">
+
+        <!-- TOP BAR -->
         <header class="topbar">
-            <button id="menu-btn" class="menu-btn" type="button" aria-label="Open menu">☰</button>
+
+            <button id="menu-btn"
+                    class="menu-btn"
+                    type="button"
+                    aria-label="Open menu">
+                ☰
+            </button>
 
             <div class="top-title">
-                <span>🤖</span>
+
+                <img src="logo.png"
+                     class="top-logo"
+                     alt="My AI">
+
                 <span>My AI Assistant</span>
+
             </div>
 
             <div class="top-status">
+
                 <span class="online-dot"></span>
                 <span>Online</span>
+
             </div>
+
         </header>
 
+
+        <!-- CHAT -->
         <section class="chat-area" id="chat-box"></section>
 
+
+        <!-- ================= INPUT ================= -->
         <div class="input-section">
-            <div id="attachment-preview" class="attachment-preview"></div>
+
+            <div id="attachment-preview"
+                 class="attachment-preview">
+            </div>
+
 
             <div class="input-wrapper">
-                <input id="file-input" type="file" hidden accept="image/*,.txt,.md,.json,.csv,.js,.html,.css,.py">
-                <button id="attach-btn" class="tool-btn" type="button" title="Attach file">📎</button>
 
-                <textarea id="user-input" rows="1" placeholder="Message My AI..." autocomplete="off"></textarea>
+                <!-- Hidden inputs -->
 
-                <button id="stop-btn" class="stop-btn hidden" type="button">■</button>
-                <button id="send-btn" class="send-btn" type="button" aria-label="Send message">➤</button>
+                <input id="file-input"
+                       type="file"
+                       hidden
+                       accept="image/*,.txt,.md,.json,.csv,.js,.html,.css,.py,.java,.cpp,.c,.sql,.pdf">
+
+                <input id="camera-input"
+                       type="file"
+                       hidden
+                       accept="image/*"
+                       capture="environment">
+
+                <input id="photo-input"
+                       type="file"
+                       hidden
+                       accept="image/*">
+
+                <input id="code-input"
+                       type="file"
+                       hidden
+                       accept=".js,.html,.css,.py,.java,.cpp,.c,.sql,.json,.txt,.md">
+
+
+                <!-- PLUS TOOL BUTTON -->
+
+                <div class="tools-wrapper">
+
+                    <button id="attach-btn"
+                            class="plus-btn"
+                            type="button"
+                            title="Tools"
+                            aria-label="Open tools">
+                        <span class="plus-icon">+</span>
+                    </button>
+
+
+                    <!-- FLOATING TOOLS MENU -->
+
+                    <div id="tools-menu"
+                         class="tools-menu">
+
+                        <div class="tools-menu-title">
+                            <span>Tools</span>
+                            <button id="close-tools"
+                                    type="button">
+                                ×
+                            </button>
+                        </div>
+
+
+                        <button class="tool-option"
+                                id="camera-btn"
+                                type="button">
+
+                            <span class="tool-option-icon camera-icon">
+                                📷
+                            </span>
+
+                            <span>
+                                <strong>Camera</strong>
+                                <small>Take a photo</small>
+                            </span>
+
+                        </button>
+
+
+                        <button class="tool-option"
+                                id="photo-btn"
+                                type="button">
+
+                            <span class="tool-option-icon">
+                                🖼️
+                            </span>
+
+                            <span>
+                                <strong>Photos</strong>
+                                <small>Choose an image</small>
+                            </span>
+
+                        </button>
+
+
+                        <button class="tool-option"
+                                id="file-btn"
+                                type="button">
+
+                            <span class="tool-option-icon">
+                                📎
+                            </span>
+
+                            <span>
+                                <strong>Files</strong>
+                                <small>Upload a file</small>
+                            </span>
+
+                        </button>
+
+
+                        <button class="tool-option"
+                                id="search-btn"
+                                type="button">
+
+                            <span class="tool-option-icon">
+                                🔍
+                            </span>
+
+                            <span>
+                                <strong>Search</strong>
+                                <small>Ask AI to search</small>
+                            </span>
+
+                        </button>
+
+
+                        <button class="tool-option"
+                                id="code-btn"
+                                type="button">
+
+                            <span class="tool-option-icon">
+                                💻
+                            </span>
+
+                            <span>
+                                <strong>Code</strong>
+                                <small>Upload code</small>
+                            </span>
+
+                        </button>
+
+
+                        <button class="tool-option"
+                                id="learn-btn"
+                                type="button">
+
+                            <span class="tool-option-icon">
+                                📚
+                            </span>
+
+                            <span>
+                                <strong>Learn</strong>
+                                <small>Explain & learn</small>
+                            </span>
+
+                        </button>
+
+
+                        <button class="tool-option"
+                                id="settings-btn"
+                                type="button">
+
+                            <span class="tool-option-icon">
+                                ⚙️
+                            </span>
+
+                            <span>
+                                <strong>Settings</strong>
+                                <small>Assistant settings</small>
+                            </span>
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+                <!-- TEXT -->
+
+                <textarea id="user-input"
+                          rows="1"
+                          placeholder="Message My AI..."
+                          autocomplete="off"></textarea>
+
+
+                <!-- STOP -->
+
+                <button id="stop-btn"
+                        class="stop-btn hidden"
+                        type="button">
+                    ■
+                </button>
+
+
+                <!-- SEND -->
+
+                <button id="send-btn"
+                        class="send-btn"
+                        type="button"
+                        aria-label="Send message">
+                    ➤
+                </button>
+
             </div>
+
 
             <div class="input-info">
                 My AI can make mistakes. Check important information.
             </div>
+
         </div>
+
     </main>
+
 </div>
 
+
+<!-- SETTINGS MODAL -->
+
+<div id="settings-modal"
+     class="settings-modal hidden">
+
+    <div class="settings-card">
+
+        <div class="settings-header">
+
+            <div>
+                <h2>Settings</h2>
+                <p>My AI Assistant</p>
+            </div>
+
+            <button id="close-settings"
+                    type="button">
+                ×
+            </button>
+
+        </div>
+
+        <div class="setting-row">
+
+            <div>
+                <strong>Theme</strong>
+                <small>Switch between light and dark mode</small>
+            </div>
+
+            <button id="theme-toggle"
+                    class="setting-action"
+                    type="button">
+                🌙 Dark
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
 <script src="script.js"></script>
+
 </body>
 </html>
