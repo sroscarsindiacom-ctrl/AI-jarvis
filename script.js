@@ -1,659 +1,1753 @@
-```js
 /* =========================================================
-   AI NANDU - FINAL FRONTEND SCRIPT
-   Existing AI/API functionality preserved
-   Gemini-style + Functions panel
+   AI JARVIS / AI NANDU
+   FINAL FRONTEND SCRIPT.JS
+   =========================================================
+   COPY THIS ENTIRE FILE
+   REPLACE YOUR OLD script.js
+   SAVE
+   ========================================================= */
+
+"use strict";
+
+
+/* =========================================================
+   ELEMENTS
    ========================================================= */
 
 const input = document.getElementById("user-input");
 const sendBtn = document.getElementById("send-btn");
 const stopBtn = document.getElementById("stop-btn");
+
 const chatBox = document.getElementById("chat-box");
+
 const newChatBtn = document.getElementById("new-chat-btn");
 const clearChatBtn = document.getElementById("clear-chat-btn");
+
 const menuBtn = document.getElementById("menu-btn");
 const sidebar = document.getElementById("sidebar");
+
 const fileInput = document.getElementById("file-input");
 const attachBtn = document.getElementById("attach-btn");
-const attachmentPreview = document.getElementById("attachment-preview");
-const historyList = document.getElementById("history-list");
 
-let conversation = [];
-let isSending = false;
-let abortController = null;
-let pendingAttachment = null;
+const attachmentPreview =
+    document.getElementById("attachment-preview");
+
+const historyList =
+    document.getElementById("history-list");
+
+
+/* =========================================================
+   STORAGE
+   ========================================================= */
 
 const STORAGE_KEY = "myAIConversation";
 const THEME_KEY = "aiNanduTheme";
 
+
 /* =========================================================
-   DYNAMIC FUNCTIONS PANEL CSS
-   No extra CSS file change required
+   STATE
    ========================================================= */
 
-const functionsCSS = document.createElement("style");
+let conversation = [];
 
-functionsCSS.textContent = `
-    .nandu-functions-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,.28);
-        backdrop-filter: blur(2px);
-        z-index: 1998;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity .22s ease;
+let isSending = false;
+
+let abortController = null;
+
+let pendingAttachment = null;
+
+let cameraStream = null;
+
+
+/* =========================================================
+   SAFE HELPERS
+   ========================================================= */
+
+function $(selector) {
+    return document.querySelector(selector);
+}
+
+
+function escapeHtml(text) {
+
+    const div = document.createElement("div");
+
+    div.textContent = String(text ?? "");
+
+    return div.innerHTML;
+}
+
+
+function scrollToBottom() {
+
+    requestAnimationFrame(() => {
+
+        if (chatBox) {
+            chatBox.scrollTop =
+                chatBox.scrollHeight;
+        }
+
+    });
+}
+
+
+/* =========================================================
+   MARKDOWN
+   ========================================================= */
+
+function renderMarkdown(text) {
+
+    text = String(text ?? "");
+
+    if (
+        typeof window.marked === "undefined"
+    ) {
+
+        return escapeHtml(text)
+            .replace(/\n/g, "<br>");
     }
 
-    .nandu-functions-overlay.show {
+    try {
+
+        window.marked.setOptions({
+            breaks: true,
+            gfm: true
+        });
+
+        const raw =
+            window.marked.parse(text);
+
+        if (
+            typeof window.DOMPurify !== "undefined"
+        ) {
+
+            return window.DOMPurify.sanitize(
+                raw,
+                {
+                    ADD_ATTR: [
+                        "target",
+                        "rel"
+                    ]
+                }
+            );
+        }
+
+        return raw;
+
+    } catch (error) {
+
+        console.error(
+            "Markdown error:",
+            error
+        );
+
+        return escapeHtml(text)
+            .replace(/\n/g, "<br>");
+    }
+}
+
+
+/* =========================================================
+   DYNAMIC CSS
+   ========================================================= */
+
+const style = document.createElement("style");
+
+style.id = "ai-jarvis-final-style";
+
+style.textContent = `
+
+/* =====================================================
+   FUNCTIONS OVERLAY
+   ===================================================== */
+
+.jarvis-functions-overlay {
+
+    position: fixed;
+
+    inset: 0;
+
+    background:
+        rgba(0,0,0,.34);
+
+    backdrop-filter:
+        blur(3px);
+
+    -webkit-backdrop-filter:
+        blur(3px);
+
+    z-index: 1998;
+
+    opacity: 0;
+
+    pointer-events: none;
+
+    transition:
+        opacity .22s ease;
+}
+
+
+.jarvis-functions-overlay.show {
+
+    opacity: 1;
+
+    pointer-events: auto;
+}
+
+
+/* =====================================================
+   FUNCTIONS PANEL
+   ===================================================== */
+
+.jarvis-functions-panel {
+
+    position: fixed;
+
+    top: 102px;
+
+    right: 22px;
+
+    width: 362px;
+
+    max-width:
+        calc(100vw - 30px);
+
+    max-height:
+        calc(100vh - 125px);
+
+    overflow-y: auto;
+
+    padding: 16px;
+
+    background:
+        rgba(8,17,31,.97);
+
+    border:
+        1px solid rgba(59,130,246,.75);
+
+    border-radius: 22px;
+
+    box-shadow:
+        0 25px 80px rgba(0,0,0,.50),
+        0 0 35px rgba(37,99,235,.14);
+
+    z-index: 1999;
+
+    opacity: 0;
+
+    transform:
+        translateY(-12px)
+        scale(.97);
+
+    pointer-events: none;
+
+    transition:
+        opacity .22s ease,
+        transform .22s ease;
+}
+
+
+.jarvis-functions-panel.show {
+
+    opacity: 1;
+
+    transform:
+        translateY(0)
+        scale(1);
+
+    pointer-events: auto;
+}
+
+
+/* =====================================================
+   FUNCTIONS HEADER
+   ===================================================== */
+
+.jarvis-functions-head {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content:
+        space-between;
+
+    padding:
+        2px 4px 15px;
+}
+
+
+.jarvis-functions-heading {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+}
+
+
+.jarvis-functions-heading-icon {
+
+    width: 36px;
+
+    height: 36px;
+
+    border-radius: 50%;
+
+    object-fit: contain;
+
+    box-shadow:
+        0 0 15px
+        rgba(59,130,246,.30);
+}
+
+
+.jarvis-functions-heading-text strong {
+
+    display: block;
+
+    color: #ffffff;
+
+    font-size: 20px;
+
+    font-weight: 700;
+
+    line-height: 1.2;
+}
+
+
+.jarvis-functions-heading-text span {
+
+    display: block;
+
+    color: #94a3b8;
+
+    font-size: 12px;
+
+    margin-top: 3px;
+}
+
+
+.jarvis-functions-close {
+
+    width: 36px;
+
+    height: 36px;
+
+    border: 0;
+
+    border-radius: 50%;
+
+    background:
+        rgba(255,255,255,.07);
+
+    color: #cbd5e1;
+
+    cursor: pointer;
+
+    font-size: 24px;
+
+    line-height: 1;
+
+    transition:
+        background .18s ease,
+        transform .18s ease;
+}
+
+
+.jarvis-functions-close:hover {
+
+    background:
+        rgba(255,255,255,.13);
+
+    transform:
+        rotate(5deg);
+}
+
+
+/* =====================================================
+   FUNCTION GRID
+   ===================================================== */
+
+.jarvis-functions-grid {
+
+    display: grid;
+
+    grid-template-columns:
+        1fr;
+
+    gap: 9px;
+}
+
+
+.jarvis-function-item {
+
+    width: 100%;
+
+    min-height: 72px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 13px;
+
+    position: relative;
+
+    padding:
+        12px 14px;
+
+    border:
+        1px solid
+        rgba(148,163,184,.16);
+
+    border-radius: 15px;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(15,27,45,.98),
+            rgba(8,18,32,.98)
+        );
+
+    color: #ffffff;
+
+    text-align: left;
+
+    cursor: pointer;
+
+    transition:
+        transform .18s ease,
+        border-color .18s ease,
+        background .18s ease,
+        box-shadow .18s ease;
+}
+
+
+.jarvis-function-item:hover {
+
+    transform:
+        translateX(-2px);
+
+    border-color:
+        rgba(96,165,250,.55);
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(18,38,65,1),
+            rgba(10,25,45,1)
+        );
+
+    box-shadow:
+        0 8px 25px
+        rgba(37,99,235,.13);
+}
+
+
+.jarvis-function-icon {
+
+    width: 43px;
+
+    height: 43px;
+
+    min-width: 43px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    border-radius: 13px;
+
+    background:
+        rgba(37,99,235,.13);
+
+    border:
+        1px solid
+        rgba(59,130,246,.12);
+
+    font-size: 22px;
+}
+
+
+.jarvis-function-text {
+
+    flex: 1;
+
+    min-width: 0;
+}
+
+
+.jarvis-function-text strong {
+
+    display: block;
+
+    color: #f8fafc;
+
+    font-size: 15px;
+
+    font-weight: 650;
+
+    margin-bottom: 4px;
+}
+
+
+.jarvis-function-text span {
+
+    display: block;
+
+    color: #94a3b8;
+
+    font-size: 12px;
+
+    line-height: 1.35;
+}
+
+
+.jarvis-function-arrow {
+
+    color: #cbd5e1;
+
+    font-size: 22px;
+
+    margin-left: auto;
+
+    transition:
+        transform .18s ease;
+}
+
+
+.jarvis-function-item:hover
+.jarvis-function-arrow {
+
+    transform:
+        translateX(3px);
+}
+
+
+/* =====================================================
+   SEARCH
+   ===================================================== */
+
+.jarvis-search-box {
+
+    display: none;
+
+    gap: 8px;
+
+    margin-top: 10px;
+
+    padding-top: 10px;
+
+    border-top:
+        1px solid
+        rgba(148,163,184,.12);
+}
+
+
+.jarvis-search-box.show {
+
+    display: flex;
+}
+
+
+.jarvis-search-input {
+
+    flex: 1;
+
+    min-width: 0;
+
+    border:
+        1px solid
+        rgba(148,163,184,.22);
+
+    background:
+        rgba(15,23,42,.95);
+
+    color: #ffffff;
+
+    outline: none;
+
+    border-radius: 11px;
+
+    padding:
+        11px 12px;
+
+    font-size: 13px;
+}
+
+
+.jarvis-search-input::placeholder {
+
+    color: #64748b;
+}
+
+
+.jarvis-search-input:focus {
+
+    border-color:
+        #3b82f6;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(59,130,246,.12);
+}
+
+
+.jarvis-search-go {
+
+    border: 0;
+
+    border-radius: 11px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #2563eb,
+            #7c3aed
+        );
+
+    color: #ffffff;
+
+    padding:
+        0 15px;
+
+    font-weight: 600;
+
+    cursor: pointer;
+}
+
+
+/* =====================================================
+   CAMERA
+   ===================================================== */
+
+.jarvis-camera-modal {
+
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 3000;
+
+    display: none;
+
+    align-items: center;
+
+    justify-content: center;
+
+    padding: 15px;
+
+    background:
+        rgba(0,0,0,.78);
+
+    backdrop-filter:
+        blur(4px);
+}
+
+
+.jarvis-camera-modal.show {
+
+    display: flex;
+}
+
+
+.jarvis-camera-card {
+
+    width: 540px;
+
+    max-width: 100%;
+
+    padding: 15px;
+
+    border-radius: 20px;
+
+    background:
+        #0b1220;
+
+    border:
+        1px solid
+        rgba(96,165,250,.35);
+
+    box-shadow:
+        0 30px 90px
+        rgba(0,0,0,.55);
+}
+
+
+.jarvis-camera-card video {
+
+    width: 100%;
+
+    max-height: 65vh;
+
+    object-fit: cover;
+
+    background: #020617;
+
+    border-radius: 15px;
+}
+
+
+.jarvis-camera-actions {
+
+    display: flex;
+
+    gap: 8px;
+
+    margin-top: 12px;
+}
+
+
+.jarvis-camera-actions button {
+
+    flex: 1;
+
+    border: 0;
+
+    border-radius: 11px;
+
+    padding: 12px;
+
+    cursor: pointer;
+
+    font-weight: 600;
+}
+
+
+.jarvis-camera-capture {
+
+    color: #ffffff;
+
+    background:
+        linear-gradient(
+            135deg,
+            #2563eb,
+            #7c3aed
+        );
+}
+
+
+.jarvis-camera-cancel {
+
+    color: #e2e8f0;
+
+    background:
+        #1e293b;
+}
+
+
+/* =====================================================
+   ATTACHMENT PREVIEW
+   ===================================================== */
+
+#attachment-preview {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 7px;
+
+    flex-wrap: wrap;
+}
+
+
+.jarvis-attachment-chip {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    max-width: 100%;
+
+    padding:
+        7px 10px;
+
+    border-radius: 10px;
+
+    background:
+        rgba(37,99,235,.13);
+
+    border:
+        1px solid
+        rgba(59,130,246,.30);
+
+    color: #dbeafe;
+
+    font-size: 12px;
+}
+
+
+.jarvis-remove-attachment {
+
+    border: 0;
+
+    background: transparent;
+
+    color: #94a3b8;
+
+    cursor: pointer;
+
+    font-size: 18px;
+
+    line-height: 1;
+}
+
+
+/* =====================================================
+   CODE CONTAINER
+   ===================================================== */
+
+.code-container {
+
+    overflow: hidden;
+
+    margin:
+        12px 0;
+
+    border:
+        1px solid
+        rgba(148,163,184,.18);
+
+    border-radius: 12px;
+
+    background:
+        #020617;
+}
+
+
+.code-header {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content:
+        space-between;
+
+    padding:
+        8px 10px;
+
+    background:
+        #0f172a;
+
+    border-bottom:
+        1px solid
+        rgba(148,163,184,.14);
+
+    color: #94a3b8;
+
+    font-size: 11px;
+
+    text-transform:
+        uppercase;
+
+    letter-spacing:
+        .04em;
+}
+
+
+.code-header button {
+
+    border: 0;
+
+    border-radius: 7px;
+
+    padding:
+        5px 9px;
+
+    background:
+        #1e293b;
+
+    color: #e2e8f0;
+
+    cursor: pointer;
+
+    font-size: 11px;
+}
+
+
+.code-header button:hover {
+
+    background:
+        #334155;
+}
+
+
+.code-container pre {
+
+    margin: 0;
+
+    padding: 14px;
+
+    overflow-x: auto;
+}
+
+
+/* =====================================================
+   ERROR
+   ===================================================== */
+
+.error-box {
+
+    padding: 10px 12px;
+
+    border-radius: 10px;
+
+    color: #fecaca;
+
+    background:
+        rgba(127,29,29,.30);
+
+    border:
+        1px solid
+        rgba(248,113,113,.25);
+}
+
+
+/* =====================================================
+   TYPING
+   ===================================================== */
+
+.typing {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 5px;
+
+    padding:
+        7px 2px;
+}
+
+
+.typing span {
+
+    width: 7px;
+
+    height: 7px;
+
+    border-radius: 50%;
+
+    background:
+        #60a5fa;
+
+    animation:
+        jarvisTyping 1s
+        infinite ease-in-out;
+}
+
+
+.typing span:nth-child(2) {
+
+    animation-delay:
+        .15s;
+}
+
+
+.typing span:nth-child(3) {
+
+    animation-delay:
+        .30s;
+}
+
+
+@keyframes jarvisTyping {
+
+    0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: .45;
+    }
+
+    30% {
+        transform: translateY(-4px);
         opacity: 1;
-        pointer-events: auto;
+    }
+}
+
+
+/* =====================================================
+   HIDDEN
+   ===================================================== */
+
+.hidden {
+
+    display: none !important;
+}
+
+
+/* =====================================================
+   DARK BODY
+   ===================================================== */
+
+body.nandu-theme-dark {
+
+    background:
+        #020617 !important;
+
+    color:
+        #f8fafc !important;
+}
+
+
+/* =====================================================
+   MOBILE
+   ===================================================== */
+
+@media (max-width: 700px) {
+
+    .jarvis-functions-panel {
+
+        top: 75px;
+
+        left: 10px;
+
+        right: 10px;
+
+        width: auto;
+
+        max-width: none;
+
+        max-height:
+            calc(100vh - 90px);
+
+        border-radius: 19px;
     }
 
-    .nandu-functions-panel {
-        position: fixed;
-        left: 22px;
-        bottom: 88px;
-        width: 360px;
-        max-width: calc(100vw - 30px);
-        background: rgba(255,255,255,.97);
-        border: 1px solid #e5e7eb;
-        border-radius: 22px;
-        box-shadow: 0 20px 60px rgba(0,0,0,.20);
-        padding: 15px;
-        z-index: 1999;
-        opacity: 0;
-        transform: translateY(15px) scale(.96);
-        pointer-events: none;
-        transition: opacity .22s ease, transform .22s ease;
+    .jarvis-function-item {
+
+        min-height: 66px;
+
+        padding:
+            10px 11px;
     }
 
-    .nandu-functions-panel.show {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-        pointer-events: auto;
+    .jarvis-function-icon {
+
+        width: 39px;
+
+        height: 39px;
+
+        min-width: 39px;
+
+        font-size: 19px;
     }
 
-    .nandu-functions-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 5px 5px 13px;
-    }
+    .jarvis-function-text strong {
 
-    .nandu-functions-title {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 17px;
-        font-weight: 700;
-        color: #111827;
-    }
-
-    .nandu-functions-title img {
-        width: 30px;
-        height: 30px;
-        border-radius: 50%;
-        object-fit: contain;
-    }
-
-    .nandu-functions-close {
-        width: 32px;
-        height: 32px;
-        border: 0;
-        border-radius: 50%;
-        background: #f3f4f6;
-        cursor: pointer;
-        font-size: 20px;
-        color: #4b5563;
-    }
-
-    .nandu-functions-close:hover {
-        background: #e5e7eb;
-    }
-
-    .nandu-functions-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 9px;
-    }
-
-    .nandu-function-item {
-        min-height: 76px;
-        border: 1px solid #e5e7eb;
-        background: #fff;
-        border-radius: 15px;
-        cursor: pointer;
-        padding: 12px;
-        text-align: left;
-        transition: .18s ease;
-        display: flex;
-        align-items: center;
-        gap: 11px;
-    }
-
-    .nandu-function-item:hover {
-        transform: translateY(-2px);
-        border-color: #93c5fd;
-        background: #eff6ff;
-        box-shadow: 0 7px 18px rgba(37,99,235,.10);
-    }
-
-    .nandu-function-icon {
-        width: 42px;
-        height: 42px;
-        min-width: 42px;
-        border-radius: 13px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #eff6ff;
-        font-size: 21px;
-    }
-
-    .nandu-function-text strong {
-        display: block;
         font-size: 14px;
-        color: #111827;
-        margin-bottom: 3px;
     }
 
-    .nandu-function-text span {
-        display: block;
+    .jarvis-function-text span {
+
         font-size: 11px;
-        color: #6b7280;
-        line-height: 1.3;
     }
 
-    .nandu-search-box {
-        margin-top: 11px;
-        display: none;
-        gap: 7px;
+}
+
+
+@media (max-width: 430px) {
+
+    .jarvis-functions-panel {
+
+        top: 65px;
+
+        padding: 12px;
     }
 
-    .nandu-search-box.show {
-        display: flex;
+    .jarvis-functions-heading-text strong {
+
+        font-size: 18px;
     }
 
-    .nandu-search-input {
-        flex: 1;
-        border: 1px solid #d1d5db;
-        outline: none;
-        border-radius: 11px;
-        padding: 10px 12px;
-        font-size: 14px;
+    .jarvis-functions-heading-text span {
+
+        font-size: 11px;
     }
 
-    .nandu-search-input:focus {
-        border-color: #2563eb;
-        box-shadow: 0 0 0 3px rgba(37,99,235,.10);
+}
+
+
+/* =====================================================
+   MOBILE SIDEBAR
+   ===================================================== */
+
+@media (max-width: 768px) {
+
+    #sidebar {
+
+        transition:
+            transform .25s ease;
     }
 
-    .nandu-search-go {
-        border: 0;
-        border-radius: 11px;
-        background: #2563eb;
-        color: #fff;
-        padding: 0 14px;
-        cursor: pointer;
+    #sidebar.open {
+
+        transform:
+            translateX(0) !important;
     }
 
-    .nandu-camera-modal {
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,.72);
-        z-index: 3000;
-        display: none;
-        align-items: center;
-        justify-content: center;
-        padding: 15px;
-    }
+}
 
-    .nandu-camera-modal.show {
-        display: flex;
-    }
 
-    .nandu-camera-card {
-        width: 520px;
-        max-width: 100%;
-        background: #fff;
-        border-radius: 20px;
-        padding: 15px;
-        box-shadow: 0 25px 80px rgba(0,0,0,.35);
-    }
+/* =====================================================
+   FUNCTION BUTTON STYLE
+   ===================================================== */
 
-    .nandu-camera-card video {
-        width: 100%;
-        max-height: 60vh;
-        object-fit: cover;
-        background: #111827;
-        border-radius: 14px;
-    }
+#functions-btn,
+#functions-button {
 
-    .nandu-camera-actions {
-        display: flex;
-        gap: 8px;
-        margin-top: 12px;
-    }
+    cursor: pointer;
+}
 
-    .nandu-camera-actions button {
-        flex: 1;
-        border: 0;
-        border-radius: 11px;
-        padding: 11px;
-        cursor: pointer;
-        font-weight: 600;
-    }
 
-    .nandu-camera-capture {
-        background: #2563eb;
-        color: #fff;
-    }
+/* =====================================================
+   SUGGESTIONS
+   ===================================================== */
 
-    .nandu-camera-cancel {
-        background: #f3f4f6;
-        color: #111827;
-    }
+.suggestion {
 
-    .nandu-theme-dark {
-        background: #111827 !important;
-        color: #f9fafb !important;
-    }
+    cursor: pointer;
+}
 
-    .nandu-theme-dark .nandu-functions-panel {
-        background: #1f2937;
-        border-color: #374151;
-    }
 
-    .nandu-theme-dark .nandu-functions-title,
-    .nandu-theme-dark .nandu-function-text strong {
-        color: #f9fafb;
-    }
+/* =====================================================
+   SOURCE BOX
+   ===================================================== */
 
-    .nandu-theme-dark .nandu-function-item {
-        background: #111827;
-        border-color: #374151;
-    }
+.sources {
 
-    .nandu-theme-dark .nandu-function-item:hover {
-        background: #1e3a5f;
-        border-color: #2563eb;
-    }
+    margin-top: 10px;
 
-    .nandu-theme-dark .nandu-function-text span {
-        color: #9ca3af;
-    }
+    display: flex;
 
-    .nandu-theme-dark .nandu-function-icon {
-        background: #1e3a5f;
-    }
+    flex-direction: column;
 
-    .nandu-theme-dark .nandu-functions-close {
-        background: #374151;
-        color: #fff;
-    }
+    gap: 5px;
 
-    @media (max-width: 600px) {
-        .nandu-functions-panel {
-            left: 10px;
-            right: 10px;
-            bottom: 75px;
-            width: auto;
-            max-width: none;
-            border-radius: 19px;
-        }
+    padding:
+        10px 12px;
 
-        .nandu-functions-grid {
-            grid-template-columns: repeat(2, 1fr);
-        }
+    border-radius: 11px;
 
-        .nandu-function-item {
-            min-height: 70px;
-            padding: 9px;
-        }
+    background:
+        rgba(15,23,42,.50);
 
-        .nandu-function-icon {
-            width: 37px;
-            height: 37px;
-            min-width: 37px;
-            font-size: 18px;
-        }
+    border:
+        1px solid
+        rgba(148,163,184,.12);
 
-        .nandu-function-text strong {
-            font-size: 13px;
-        }
+    font-size: 12px;
+}
 
-        .nandu-function-text span {
-            font-size: 10px;
-        }
-    }
+
+.sources strong {
+
+    color:
+        #cbd5e1;
+
+    margin-bottom: 2px;
+}
+
+
+.sources a {
+
+    color:
+        #60a5fa;
+
+    text-decoration: none;
+
+    overflow-wrap:
+        anywhere;
+}
+
+
+.sources a:hover {
+
+    text-decoration: underline;
+}
+
 `;
 
-document.head.appendChild(functionsCSS);
+document.head.appendChild(style);
 
 
 /* =========================================================
-   CREATE FUNCTIONS PANEL
+   FUNCTIONS OVERLAY
    ========================================================= */
 
-const functionsOverlay = document.createElement("div");
-functionsOverlay.className = "nandu-functions-overlay";
+const functionsOverlay =
+    document.createElement("div");
 
-const functionsPanel = document.createElement("div");
-functionsPanel.className = "nandu-functions-panel";
+functionsOverlay.className =
+    "jarvis-functions-overlay";
+
+
+/* =========================================================
+   FUNCTIONS PANEL
+   ========================================================= */
+
+const functionsPanel =
+    document.createElement("div");
+
+functionsPanel.className =
+    "jarvis-functions-panel";
+
 
 functionsPanel.innerHTML = `
-    <div class="nandu-functions-head">
-        <div class="nandu-functions-title">
-            <img src="logo.png" alt="AI Nandu">
-            <span>AI Nandu</span>
+
+    <div class="jarvis-functions-head">
+
+        <div class="jarvis-functions-heading">
+
+            <img
+                src="logo.png"
+                class="jarvis-functions-heading-icon"
+                alt="AI Assistant"
+            >
+
+            <div class="jarvis-functions-heading-text">
+
+                <strong>Functions</strong>
+
+                <span>
+                    Choose a tool to get started
+                </span>
+
+            </div>
+
         </div>
-        <button class="nandu-functions-close" type="button">×</button>
+
+        <button
+            type="button"
+            class="jarvis-functions-close"
+            aria-label="Close"
+        >
+            ×
+        </button>
+
     </div>
 
-    <div class="nandu-functions-grid">
 
-        <button class="nandu-function-item" data-tool="camera" type="button">
-            <div class="nandu-function-icon">📷</div>
-            <div class="nandu-function-text">
+    <div class="jarvis-functions-grid">
+
+
+        <button
+            type="button"
+            class="jarvis-function-item"
+            data-tool="camera"
+        >
+
+            <div class="jarvis-function-icon">
+                📷
+            </div>
+
+            <div class="jarvis-function-text">
+
                 <strong>Camera</strong>
-                <span>Take a photo</span>
+
+                <span>
+                    Take a photo
+                </span>
+
             </div>
+
+            <div class="jarvis-function-arrow">
+                →
+            </div>
+
         </button>
 
-        <button class="nandu-function-item" data-tool="gallery" type="button">
-            <div class="nandu-function-icon">🖼️</div>
-            <div class="nandu-function-text">
-                <strong>Photos</strong>
-                <span>Choose an image</span>
+
+        <button
+            type="button"
+            class="jarvis-function-item"
+            data-tool="images"
+        >
+
+            <div class="jarvis-function-icon">
+                🖼️
             </div>
+
+            <div class="jarvis-function-text">
+
+                <strong>Images</strong>
+
+                <span>
+                    Upload or generate images
+                </span>
+
+            </div>
+
+            <div class="jarvis-function-arrow">
+                →
+            </div>
+
         </button>
 
-        <button class="nandu-function-item" data-tool="files" type="button">
-            <div class="nandu-function-icon">📎</div>
-            <div class="nandu-function-text">
+
+        <button
+            type="button"
+            class="jarvis-function-item"
+            data-tool="files"
+        >
+
+            <div class="jarvis-function-icon">
+                📎
+            </div>
+
+            <div class="jarvis-function-text">
+
                 <strong>Files</strong>
-                <span>Upload documents</span>
+
+                <span>
+                    Upload files from device
+                </span>
+
             </div>
+
+            <div class="jarvis-function-arrow">
+                →
+            </div>
+
         </button>
 
-        <button class="nandu-function-item" data-tool="drive" type="button">
-            <div class="nandu-function-icon">📁</div>
-            <div class="nandu-function-text">
+
+        <button
+            type="button"
+            class="jarvis-function-item"
+            data-tool="drive"
+        >
+
+            <div class="jarvis-function-icon">
+                📁
+            </div>
+
+            <div class="jarvis-function-text">
+
                 <strong>Drive</strong>
-                <span>Google Drive</span>
+
+                <span>
+                    Access files from Google Drive
+                </span>
+
             </div>
+
+            <div class="jarvis-function-arrow">
+                →
+            </div>
+
         </button>
 
-        <button class="nandu-function-item" data-tool="search" type="button">
-            <div class="nandu-function-icon">🔍</div>
-            <div class="nandu-function-text">
+
+        <button
+            type="button"
+            class="jarvis-function-item"
+            data-tool="search"
+        >
+
+            <div class="jarvis-function-icon">
+                🔍
+            </div>
+
+            <div class="jarvis-function-text">
+
                 <strong>Search</strong>
-                <span>Search with AI</span>
+
+                <span>
+                    Search on the web
+                </span>
+
             </div>
+
+            <div class="jarvis-function-arrow">
+                →
+            </div>
+
         </button>
 
-        <button class="nandu-function-item" data-tool="code" type="button">
-            <div class="nandu-function-icon">💻</div>
-            <div class="nandu-function-text">
+
+        <button
+            type="button"
+            class="jarvis-function-item"
+            data-tool="code"
+        >
+
+            <div class="jarvis-function-icon">
+                💻
+            </div>
+
+            <div class="jarvis-function-text">
+
                 <strong>Code</strong>
-                <span>Build & debug</span>
+
+                <span>
+                    Write, explain & debug code
+                </span>
+
             </div>
+
+            <div class="jarvis-function-arrow">
+                →
+            </div>
+
         </button>
 
-        <button class="nandu-function-item" data-tool="learn" type="button">
-            <div class="nandu-function-icon">📚</div>
-            <div class="nandu-function-text">
+
+        <button
+            type="button"
+            class="jarvis-function-item"
+            data-tool="learn"
+        >
+
+            <div class="jarvis-function-icon">
+                📚
+            </div>
+
+            <div class="jarvis-function-text">
+
                 <strong>Learn</strong>
-                <span>Explain anything</span>
+
+                <span>
+                    Explain any topic
+                </span>
+
             </div>
+
+            <div class="jarvis-function-arrow">
+                →
+            </div>
+
         </button>
 
-        <button class="nandu-function-item" data-tool="settings" type="button">
-            <div class="nandu-function-icon">⚙️</div>
-            <div class="nandu-function-text">
-                <strong>Settings</strong>
-                <span>Customize AI</span>
+
+        <button
+            type="button"
+            class="jarvis-function-item"
+            data-tool="settings"
+        >
+
+            <div class="jarvis-function-icon">
+                ⚙️
             </div>
+
+            <div class="jarvis-function-text">
+
+                <strong>Settings</strong>
+
+                <span>
+                    Customize your experience
+                </span>
+
+            </div>
+
+            <div class="jarvis-function-arrow">
+                →
+            </div>
+
         </button>
+
 
     </div>
 
-    <div class="nandu-search-box">
+
+    <div class="jarvis-search-box">
+
         <input
-            class="nandu-search-input"
+            class="jarvis-search-input"
             type="text"
             placeholder="What do you want to search?"
         >
-        <button class="nandu-search-go" type="button">Go</button>
+
+        <button
+            type="button"
+            class="jarvis-search-go"
+        >
+            Go
+        </button>
+
     </div>
+
 `;
 
-document.body.appendChild(functionsOverlay);
-document.body.appendChild(functionsPanel);
+
+document.body.appendChild(
+    functionsOverlay
+);
+
+document.body.appendChild(
+    functionsPanel
+);
 
 
 /* =========================================================
    CAMERA MODAL
    ========================================================= */
 
-const cameraModal = document.createElement("div");
-cameraModal.className = "nandu-camera-modal";
+const cameraModal =
+    document.createElement("div");
+
+cameraModal.className =
+    "jarvis-camera-modal";
+
 
 cameraModal.innerHTML = `
-    <div class="nandu-camera-card">
-        <video id="nandu-camera-video" autoplay playsinline></video>
 
-        <div class="nandu-camera-actions">
-            <button class="nandu-camera-capture" type="button">
+    <div class="jarvis-camera-card">
+
+        <video
+            id="jarvis-camera-video"
+            autoplay
+            playsinline
+        ></video>
+
+        <div class="jarvis-camera-actions">
+
+            <button
+                type="button"
+                class="jarvis-camera-capture"
+            >
                 📸 Capture
             </button>
 
-            <button class="nandu-camera-cancel" type="button">
+            <button
+                type="button"
+                class="jarvis-camera-cancel"
+            >
                 Cancel
             </button>
+
         </div>
+
     </div>
+
 `;
 
-document.body.appendChild(cameraModal);
 
-const cameraVideo = document.getElementById("nandu-camera-video");
+document.body.appendChild(
+    cameraModal
+);
 
-let cameraStream = null;
+
+const cameraVideo =
+    document.getElementById(
+        "jarvis-camera-video"
+    );
 
 
 /* =========================================================
-   FUNCTIONS PANEL OPEN/CLOSE
+   FUNCTIONS PANEL OPEN / CLOSE
    ========================================================= */
 
 function openFunctionsPanel() {
-    functionsOverlay.classList.add("show");
-    functionsPanel.classList.add("show");
+
+    functionsOverlay.classList.add(
+        "show"
+    );
+
+    functionsPanel.classList.add(
+        "show"
+    );
 }
+
 
 function closeFunctionsPanel() {
-    functionsOverlay.classList.remove("show");
-    functionsPanel.classList.remove("show");
 
-    const searchBox = functionsPanel.querySelector(".nandu-search-box");
-    searchBox?.classList.remove("show");
+    functionsOverlay.classList.remove(
+        "show"
+    );
+
+    functionsPanel.classList.remove(
+        "show"
+    );
+
+    const searchBox =
+        functionsPanel.querySelector(
+            ".jarvis-search-box"
+        );
+
+    searchBox?.classList.remove(
+        "show"
+    );
 }
 
+
 function toggleFunctionsPanel() {
-    if (functionsPanel.classList.contains("show")) {
+
+    if (
+        functionsPanel.classList.contains(
+            "show"
+        )
+    ) {
+
         closeFunctionsPanel();
+
     } else {
+
         openFunctionsPanel();
     }
 }
 
-functionsOverlay.addEventListener("click", closeFunctionsPanel);
+
+functionsOverlay.addEventListener(
+    "click",
+    closeFunctionsPanel
+);
+
 
 functionsPanel
-    .querySelector(".nandu-functions-close")
-    .addEventListener("click", closeFunctionsPanel);
+    .querySelector(
+        ".jarvis-functions-close"
+    )
+    .addEventListener(
+        "click",
+        closeFunctionsPanel
+    );
 
 
 /* =========================================================
-   CHANGE ATTACH BUTTON TO PLUS
+   FUNCTIONS BUTTONS
+   SUPPORT MULTIPLE HTML IDs
+   ========================================================= */
+
+const possibleFunctionButtons = [
+    "#functions-btn",
+    "#functions-button",
+    ".functions-btn",
+    ".functions-button"
+];
+
+
+possibleFunctionButtons.forEach(
+    selector => {
+
+        document
+            .querySelectorAll(selector)
+            .forEach(button => {
+
+                button.addEventListener(
+                    "click",
+                    event => {
+
+                        event.preventDefault();
+
+                        toggleFunctionsPanel();
+                    }
+                );
+
+            });
+
+    }
+);
+
+
+/* =========================================================
+   ATTACH BUTTON
    ========================================================= */
 
 if (attachBtn) {
-    attachBtn.textContent = "+";
-    attachBtn.title = "Functions";
-    attachBtn.setAttribute("aria-label", "Open functions");
-    attachBtn.style.fontSize = "25px";
-    attachBtn.style.fontWeight = "500";
 
-    attachBtn.onclick = (event) => {
+    attachBtn.textContent = "+";
+
+    attachBtn.title =
+        "Functions";
+
+    attachBtn.setAttribute(
+        "aria-label",
+        "Open functions"
+    );
+
+    attachBtn.style.fontSize =
+        "25px";
+
+    attachBtn.style.fontWeight =
+        "500";
+
+    attachBtn.onclick = event => {
+
         event.preventDefault();
+
         toggleFunctionsPanel();
     };
 }
 
 
 /* =========================================================
-   INPUT / BASIC ELEMENTS
+   LOAD SAVED CONVERSATION
    ========================================================= */
 
 function loadSaved() {
+
     try {
-        const saved = JSON.parse(
-            localStorage.getItem(STORAGE_KEY) || "[]"
-        );
+
+        const saved =
+            JSON.parse(
+                localStorage.getItem(
+                    STORAGE_KEY
+                ) || "[]"
+            );
+
 
         if (Array.isArray(saved)) {
-            conversation = saved.filter(m =>
-                m &&
-                (m.role === "user" || m.role === "assistant") &&
-                typeof m.content === "string" &&
-                m.content.trim()
-            );
+
+            conversation =
+                saved.filter(message => {
+
+                    return (
+                        message &&
+                        (
+                            message.role ===
+                                "user" ||
+                            message.role ===
+                                "assistant"
+                        ) &&
+                        typeof message.content ===
+                            "string" &&
+                        message.content.trim()
+                    );
+
+                });
+
         }
-    } catch {
+
+    } catch (error) {
+
+        console.error(
+            "Conversation load error:",
+            error
+        );
+
         conversation = [];
     }
 }
 
 
+/* =========================================================
+   SAVE CONVERSATION
+   ========================================================= */
+
 function saveConversation() {
+
     try {
+
         localStorage.setItem(
             STORAGE_KEY,
             JSON.stringify(conversation)
         );
-    } catch (e) {
-        console.error("Save error:", e);
+
+    } catch (error) {
+
+        console.error(
+            "Conversation save error:",
+            error
+        );
     }
-}
-
-
-function scrollToBottom() {
-    requestAnimationFrame(() => {
-        chatBox.scrollTop = chatBox.scrollHeight;
-    });
-}
-
-
-function escapeHtml(text) {
-    const div = document.createElement("div");
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-
-function renderMarkdown(text) {
-    if (typeof marked === "undefined") {
-        return escapeHtml(text).replace(/\n/g, "<br>");
-    }
-
-    marked.setOptions({
-        breaks: true,
-        gfm: true
-    });
-
-    const raw = marked.parse(text);
-
-    return DOMPurify.sanitize(raw, {
-        ADD_ATTR: ["target", "rel"]
-    });
-}
-
-
-/* =========================================================
-   CODE BLOCKS
-   ========================================================= */
-
-function enhanceCodeBlocks(container) {
-
-    container.querySelectorAll("pre code").forEach(code => {
-
-        try {
-            if (window.hljs) {
-                hljs.highlightElement(code);
-            }
-        } catch {}
-
-        const pre = code.parentElement;
-
-        if (
-            pre.parentElement &&
-            pre.parentElement.classList.contains("code-container")
-        ) {
-            return;
-        }
-
-        const wrapper = document.createElement("div");
-        wrapper.className = "code-container";
-
-        const header = document.createElement("div");
-        header.className = "code-header";
-
-        const language = [...code.classList]
-            .find(c => c.startsWith("language-"))
-            ?.replace("language-", "") || "code";
-
-        header.innerHTML = `
-            <span>${escapeHtml(language)}</span>
-        `;
-
-        const copy = document.createElement("button");
-
-        copy.className = "copy-code-btn";
-        copy.textContent = "Copy";
-
-        copy.onclick = async () => {
-
-            try {
-                await navigator.clipboard.writeText(
-                    code.textContent
-                );
-
-                copy.textContent = "Copied!";
-
-                setTimeout(() => {
-                    copy.textContent = "Copy";
-                }, 1200);
-
-            } catch {
-                copy.textContent = "Failed";
-            }
-        };
-
-        header.appendChild(copy);
-
-        pre.replaceWith(wrapper);
-
-        wrapper.appendChild(header);
-        wrapper.appendChild(pre);
-    });
-
-
-    container.querySelectorAll("a").forEach(a => {
-        a.target = "_blank";
-        a.rel = "noopener noreferrer";
-    });
 }
 
 
@@ -662,19 +1756,28 @@ function enhanceCodeBlocks(container) {
    ========================================================= */
 
 function removeWelcome() {
-    chatBox.querySelector(".welcome")?.remove();
+
+    chatBox
+        ?.querySelector(
+            ".welcome"
+        )
+        ?.remove();
 }
 
 
 function showWelcome() {
 
+    if (!chatBox) return;
+
     chatBox.innerHTML = `
+
         <div class="welcome">
 
             <div class="welcome-icon">
+
                 <img
                     src="logo.png"
-                    alt="AI Nandu"
+                    alt="AI Assistant"
                     style="
                         width:70px;
                         height:70px;
@@ -682,67 +1785,118 @@ function showWelcome() {
                         border-radius:50%;
                     "
                 >
+
             </div>
+
 
             <h1>
                 How can I help you today?
             </h1>
 
+
             <p>
-                I'm AI Nandu. Ask me anything,
-                write code, learn something new,
-                or just have a conversation.
+                I'm your AI Assistant.
+                Ask me anything, write code,
+                learn something new,
+                or have a conversation.
             </p>
+
 
             <div class="suggestions">
 
-                <button
-                    class="suggestion"
-                    data-message="Write a Python program for me."
-                >
-                    💻
-                    <span>
-                        <strong>Write code</strong>
-                        <small>Create or fix code</small>
-                    </span>
-                </button>
 
                 <button
                     class="suggestion"
-                    data-message="Explain HTML in simple language."
+                    data-message="Explain quantum computing in simple words."
                 >
+
                     📚
+
                     <span>
-                        <strong>Learn something</strong>
-                        <small>Explain any topic simply</small>
+
+                        <strong>
+                            Explain
+                        </strong>
+
+                        <small>
+                            Explain anything simply
+                        </small>
+
                     </span>
+
                 </button>
+
 
                 <button
                     class="suggestion"
-                    data-message="Help me solve a math problem."
+                    data-message="Write a Python program to sort a list."
                 >
-                    🧮
+
+                    💻
+
                     <span>
-                        <strong>Solve a problem</strong>
-                        <small>Math, logic and questions</small>
+
+                        <strong>
+                            Write
+                        </strong>
+
+                        <small>
+                            Create or fix code
+                        </small>
+
                     </span>
+
                 </button>
+
 
                 <button
                     class="suggestion"
-                    data-message="Tell me the latest important technology information."
+                    data-message="Help me create an image prompt for a futuristic city."
                 >
-                    🔍
+
+                    🖼️
+
                     <span>
-                        <strong>Search information</strong>
-                        <small>Find useful information</small>
+
+                        <strong>
+                            Create
+                        </strong>
+
+                        <small>
+                            Create something new
+                        </small>
+
                     </span>
+
                 </button>
+
+
+                <button
+                    class="suggestion"
+                    data-message="Create a 30 day plan to learn AI."
+                >
+
+                    🎓
+
+                    <span>
+
+                        <strong>
+                            Study
+                        </strong>
+
+                        <small>
+                            Learn step by step
+                        </small>
+
+                    </span>
+
+                </button>
+
 
             </div>
 
         </div>
+
     `;
 
     attachSuggestions();
@@ -755,26 +1909,68 @@ function showWelcome() {
 
 function addUserMessage(text) {
 
+    if (!chatBox) return;
+
     removeWelcome();
 
-    const row = document.createElement("div");
-    row.className = "message-row user-row";
 
-    const inner = document.createElement("div");
-    inner.className = "message-inner";
+    const row =
+        document.createElement(
+            "div"
+        );
 
-    const avatar = document.createElement("div");
-    avatar.className = "avatar user-avatar";
-    avatar.textContent = "👤";
+    row.className =
+        "message-row user-row";
 
-    const content = document.createElement("div");
-    content.className = "message-content user-content";
-    content.textContent = text;
 
-    inner.append(avatar, content);
-    row.appendChild(inner);
+    const inner =
+        document.createElement(
+            "div"
+        );
 
-    chatBox.appendChild(row);
+    inner.className =
+        "message-inner";
+
+
+    const avatar =
+        document.createElement(
+            "div"
+        );
+
+    avatar.className =
+        "avatar user-avatar";
+
+    avatar.textContent =
+        "👤";
+
+
+    const content =
+        document.createElement(
+            "div"
+        );
+
+    content.className =
+        "message-content user-content";
+
+    content.textContent =
+        text;
+
+
+    inner.append(
+        avatar,
+        content
+    );
+
+
+    row.appendChild(
+        inner
+    );
+
+
+    chatBox.appendChild(
+        row
+    );
+
 
     scrollToBottom();
 }
@@ -788,75 +1984,179 @@ function createAIMessage() {
 
     removeWelcome();
 
-    const row = document.createElement("div");
-    row.className = "message-row bot-row";
 
-    const inner = document.createElement("div");
-    inner.className = "message-inner";
+    const row =
+        document.createElement(
+            "div"
+        );
 
-    const avatar = document.createElement("div");
-    avatar.className = "avatar bot-avatar";
+    row.className =
+        "message-row bot-row";
 
-    const logo = document.createElement("img");
-    logo.src = "logo.png";
-    logo.alt = "AI Nandu";
-    logo.style.width = "26px";
-    logo.style.height = "26px";
-    logo.style.objectFit = "contain";
-    logo.style.borderRadius = "50%";
 
-    avatar.appendChild(logo);
+    const inner =
+        document.createElement(
+            "div"
+        );
 
-    const content = document.createElement("div");
-    content.className = "message-content markdown-content";
+    inner.className =
+        "message-inner";
+
+
+    const avatar =
+        document.createElement(
+            "div"
+        );
+
+    avatar.className =
+        "avatar bot-avatar";
+
+
+    const logo =
+        document.createElement(
+            "img"
+        );
+
+    logo.src =
+        "logo.png";
+
+    logo.alt =
+        "AI Assistant";
+
+    logo.style.width =
+        "26px";
+
+    logo.style.height =
+        "26px";
+
+    logo.style.objectFit =
+        "contain";
+
+    logo.style.borderRadius =
+        "50%";
+
+
+    avatar.appendChild(
+        logo
+    );
+
+
+    const content =
+        document.createElement(
+            "div"
+        );
+
+    content.className =
+        "message-content markdown-content";
+
 
     content.innerHTML = `
+
         <div class="typing">
+
             <span></span>
             <span></span>
             <span></span>
+
         </div>
+
     `;
 
-    const actions = document.createElement("div");
-    actions.className = "message-actions hidden";
 
-    const regen = document.createElement("button");
-    regen.textContent = "↻ Regenerate";
-    regen.className = "action-btn";
-    regen.onclick = regenerateLast;
+    const actions =
+        document.createElement(
+            "div"
+        );
 
-    const copy = document.createElement("button");
-    copy.textContent = "Copy";
-    copy.className = "action-btn";
+    actions.className =
+        "message-actions hidden";
 
-    copy.onclick = async () => {
 
-        try {
+    const regenerate =
+        document.createElement(
+            "button"
+        );
 
-            await navigator.clipboard.writeText(
-                content.dataset.raw || ""
-            );
+    regenerate.textContent =
+        "↻ Regenerate";
 
-            copy.textContent = "Copied!";
+    regenerate.className =
+        "action-btn";
 
-            setTimeout(() => {
-                copy.textContent = "Copy";
-            }, 1200);
 
-        } catch {
-            copy.textContent = "Failed";
-        }
-    };
+    regenerate.onclick =
+        regenerateLast;
 
-    actions.append(regen, copy);
 
-    inner.append(avatar, content);
+    const copy =
+        document.createElement(
+            "button"
+        );
 
-    row.appendChild(inner);
-    row.appendChild(actions);
+    copy.textContent =
+        "Copy";
 
-    chatBox.appendChild(row);
+    copy.className =
+        "action-btn";
+
+
+    copy.onclick =
+        async () => {
+
+            try {
+
+                await navigator.clipboard.writeText(
+                    content.dataset.raw || ""
+                );
+
+                copy.textContent =
+                    "Copied!";
+
+                setTimeout(() => {
+
+                    copy.textContent =
+                        "Copy";
+
+                }, 1200);
+
+            } catch {
+
+                copy.textContent =
+                    "Failed";
+            }
+
+        };
+
+
+    actions.append(
+        regenerate,
+        copy
+    );
+
+
+    inner.append(
+        avatar,
+        content
+    );
+
+
+    row.appendChild(
+        inner
+    );
+
+
+    row.appendChild(
+        actions
+    );
+
+
+    chatBox.appendChild(
+        row
+    );
+
+
+    scrollToBottom();
+
 
     return {
         row,
@@ -868,16 +2168,200 @@ function createAIMessage() {
 
 
 /* =========================================================
-   RESPONSE
+   ENHANCE CODE BLOCKS
    ========================================================= */
 
-async function typeResponse(target, text) {
+function enhanceCodeBlocks(container) {
 
-    target.dataset.raw = text;
+    if (!container) return;
 
-    target.innerHTML = renderMarkdown(text);
 
-    enhanceCodeBlocks(target);
+    container
+        .querySelectorAll(
+            "pre code"
+        )
+        .forEach(code => {
+
+            try {
+
+                if (
+                    window.hljs
+                ) {
+
+                    window.hljs
+                        .highlightElement(
+                            code
+                        );
+                }
+
+            } catch (error) {
+
+                console.warn(
+                    "Highlight error:",
+                    error
+                );
+            }
+
+
+            const pre =
+                code.parentElement;
+
+
+            if (!pre) return;
+
+
+            if (
+                pre.parentElement &&
+                pre.parentElement.classList.contains(
+                    "code-container"
+                )
+            ) {
+
+                return;
+            }
+
+
+            const wrapper =
+                document.createElement(
+                    "div"
+                );
+
+            wrapper.className =
+                "code-container";
+
+
+            const header =
+                document.createElement(
+                    "div"
+                );
+
+            header.className =
+                "code-header";
+
+
+            const language =
+                [...code.classList]
+                    .find(
+                        c =>
+                            c.startsWith(
+                                "language-"
+                            )
+                    )
+                    ?.replace(
+                        "language-",
+                        ""
+                    ) ||
+                    "code";
+
+
+            const languageLabel =
+                document.createElement(
+                    "span"
+                );
+
+            languageLabel.textContent =
+                language;
+
+
+            const copy =
+                document.createElement(
+                    "button"
+                );
+
+            copy.type =
+                "button";
+
+            copy.textContent =
+                "Copy";
+
+
+            copy.onclick =
+                async () => {
+
+                    try {
+
+                        await navigator.clipboard.writeText(
+                            code.textContent
+                        );
+
+                        copy.textContent =
+                            "Copied!";
+
+                        setTimeout(() => {
+
+                            copy.textContent =
+                                "Copy";
+
+                        }, 1200);
+
+                    } catch {
+
+                        copy.textContent =
+                            "Failed";
+                    }
+
+                };
+
+
+            header.append(
+                languageLabel,
+                copy
+            );
+
+
+            pre.replaceWith(
+                wrapper
+            );
+
+
+            wrapper.append(
+                header,
+                pre
+            );
+
+        });
+
+
+    container
+        .querySelectorAll(
+            "a"
+        )
+        .forEach(a => {
+
+            a.target =
+                "_blank";
+
+            a.rel =
+                "noopener noreferrer";
+
+        });
+}
+
+
+/* =========================================================
+   TYPE RESPONSE
+   ========================================================= */
+
+async function typeResponse(
+    target,
+    text
+) {
+
+    if (!target) return;
+
+
+    target.dataset.raw =
+        text;
+
+
+    target.innerHTML =
+        renderMarkdown(text);
+
+
+    enhanceCodeBlocks(
+        target
+    );
+
 
     scrollToBottom();
 }
@@ -887,35 +2371,86 @@ async function typeResponse(target, text) {
    SOURCES
    ========================================================= */
 
-function addSources(row, sources) {
+function addSources(
+    row,
+    sources
+) {
 
-    if (!Array.isArray(sources) || !sources.length) {
+    if (
+        !row ||
+        !Array.isArray(sources) ||
+        !sources.length
+    ) {
+
         return;
     }
 
-    const box = document.createElement("div");
 
-    box.className = "sources";
+    const box =
+        document.createElement(
+            "div"
+        );
 
-    box.innerHTML = "<strong>Sources</strong>";
+    box.className =
+        "sources";
 
-    sources.forEach(source => {
 
-        if (!source?.url) return;
+    const title =
+        document.createElement(
+            "strong"
+        );
 
-        const a = document.createElement("a");
+    title.textContent =
+        "Sources";
 
-        a.href = source.url;
-        a.target = "_blank";
-        a.rel = "noopener noreferrer";
 
-        a.textContent =
-            source.title || source.url;
+    box.appendChild(
+        title
+    );
 
-        box.appendChild(a);
-    });
 
-    row.appendChild(box);
+    sources.forEach(
+        source => {
+
+            if (
+                !source ||
+                !source.url
+            ) {
+
+                return;
+            }
+
+
+            const link =
+                document.createElement(
+                    "a"
+                );
+
+            link.href =
+                source.url;
+
+            link.target =
+                "_blank";
+
+            link.rel =
+                "noopener noreferrer";
+
+            link.textContent =
+                source.title ||
+                source.url;
+
+
+            box.appendChild(
+                link
+            );
+
+        }
+    );
+
+
+    row.appendChild(
+        box
+    );
 }
 
 
@@ -925,34 +2460,62 @@ function addSources(row, sources) {
 
 function renderConversation() {
 
-    chatBox.innerHTML = "";
+    if (!chatBox) return;
+
+
+    chatBox.innerHTML =
+        "";
+
 
     if (!conversation.length) {
+
         showWelcome();
+
         return;
     }
 
-    conversation.forEach(m => {
 
-        if (m.role === "user") {
+    conversation.forEach(
+        message => {
 
-            addUserMessage(m.content);
+            if (
+                message.role ===
+                "user"
+            ) {
 
-        } else {
+                addUserMessage(
+                    message.content
+                );
 
-            const msg = createAIMessage();
+            } else {
 
-            msg.content.innerHTML =
-                renderMarkdown(m.content);
+                const msg =
+                    createAIMessage();
 
-            msg.content.dataset.raw =
-                m.content;
 
-            enhanceCodeBlocks(msg.content);
+                msg.content.innerHTML =
+                    renderMarkdown(
+                        message.content
+                    );
 
-            msg.actions.classList.remove("hidden");
+
+                msg.content.dataset.raw =
+                    message.content;
+
+
+                enhanceCodeBlocks(
+                    msg.content
+                );
+
+
+                msg.actions.classList.remove(
+                    "hidden"
+                );
+            }
+
         }
-    });
+    );
+
 
     scrollToBottom();
 }
@@ -964,92 +2527,194 @@ function renderConversation() {
 
 async function sendMessage() {
 
-    if (isSending) return;
-
-    const text = input.value.trim();
-
-    if (!text && !pendingAttachment) {
+    if (isSending) {
         return;
     }
 
-    isSending = true;
 
-    abortController = new AbortController();
+    if (!input) {
+        return;
+    }
 
-    sendBtn.classList.add("hidden");
-    stopBtn.classList.remove("hidden");
 
-    input.disabled = true;
+    const text =
+        input.value.trim();
 
-    const finalText =
-        text ||
-        "Please analyze the attached file.";
 
-    addUserMessage(finalText);
+    if (
+        !text &&
+        !pendingAttachment
+    ) {
+
+        return;
+    }
+
+
+    isSending =
+        true;
+
+
+    abortController =
+        new AbortController();
+
+
+    sendBtn?.classList.add(
+        "hidden"
+    );
+
+    stopBtn?.classList.remove(
+        "hidden"
+    );
+
+
+    input.disabled =
+        true;
+
+
+    let finalText =
+        text;
+
+
+    if (
+        !finalText &&
+        pendingAttachment
+    ) {
+
+        finalText =
+            `Please analyze the attached file: ${pendingAttachment.name}`;
+    }
+
+
+    if (
+        finalText &&
+        pendingAttachment
+    ) {
+
+        finalText +=
+            `\n\n[Attached file: ${pendingAttachment.name}]`;
+    }
+
+
+    addUserMessage(
+        finalText
+    );
+
 
     conversation.push({
         role: "user",
         content: finalText
     });
 
+
     saveConversation();
 
-    input.value = "";
-    input.style.height = "auto";
 
-    const ai = createAIMessage();
+    input.value =
+        "";
+
+    input.style.height =
+        "auto";
+
+
+    const ai =
+        createAIMessage();
+
 
     try {
 
-        const response = await fetch("/api/chat", {
-            method: "POST",
+        /*
+         ====================================================
+         IMPORTANT:
+         BACKEND API IS NOT CHANGED
+         ====================================================
+        */
 
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
+        const response =
+            await fetch(
+                "/api/chat",
+                {
+                    method: "POST",
 
-            body: JSON.stringify({
-                messages: conversation
-            }),
+                    headers: {
+                        "Content-Type":
+                            "application/json",
 
-            signal: abortController.signal
-        });
+                        "Accept":
+                            "application/json"
+                    },
 
-        const data = await response.json();
+                    body: JSON.stringify({
+                        messages:
+                            conversation
+                    }),
+
+                    signal:
+                        abortController.signal
+                }
+            );
+
+
+        let data = null;
+
+
+        try {
+
+            data =
+                await response.json();
+
+        } catch {
+
+            throw new Error(
+                "Server ne valid JSON response nahi diya."
+            );
+        }
+
 
         if (!response.ok) {
+
             throw new Error(
                 data?.error ||
                 `Server error ${response.status}`
             );
         }
 
+
         const reply =
-            String(data?.reply || "").trim();
+            String(
+                data?.reply || ""
+            ).trim();
+
 
         if (!reply) {
+
             throw new Error(
                 "AI ne koi response nahi diya."
             );
         }
+
 
         await typeResponse(
             ai.content,
             reply
         );
 
-        ai.actions.classList.remove("hidden");
+
+        ai.actions.classList.remove(
+            "hidden"
+        );
+
 
         addSources(
             ai.row,
             data.sources
         );
 
+
         conversation.push({
             role: "assistant",
             content: reply
         });
+
 
         saveConversation();
 
@@ -1057,43 +2722,84 @@ async function sendMessage() {
 
     } catch (error) {
 
-        if (error.name === "AbortError") {
+        console.error(
+            "Send error:",
+            error
+        );
+
+
+        if (
+            error.name ===
+            "AbortError"
+        ) {
 
             ai.content.innerHTML =
                 "<em>Generation stopped.</em>";
 
         } else {
 
-            console.error(error);
-
             ai.content.innerHTML = `
+
                 <div class="error-box">
-                    ❌ ${escapeHtml(error.message)}
+
+                    ❌
+                    ${escapeHtml(
+                        error.message ||
+                        "Something went wrong."
+                    )}
+
                 </div>
+
             `;
+
         }
 
     } finally {
 
-        isSending = false;
-        abortController = null;
+        isSending =
+            false;
 
-        input.disabled = false;
 
-        sendBtn.classList.remove("hidden");
-        stopBtn.classList.add("hidden");
+        abortController =
+            null;
 
-        input.focus();
 
-        pendingAttachment = null;
+        input.disabled =
+            false;
 
-        if (attachmentPreview) {
-            attachmentPreview.innerHTML = "";
+
+        sendBtn?.classList.remove(
+            "hidden"
+        );
+
+
+        stopBtn?.classList.add(
+            "hidden"
+        );
+
+
+        pendingAttachment =
+            null;
+
+
+        if (
+            attachmentPreview
+        ) {
+
+            attachmentPreview.innerHTML =
+                "";
+
         }
+
 
         if (fileInput) {
-            fileInput.value = "";
+
+            fileInput.value =
+                "";
         }
+
+
+        input.focus();
 
         scrollToBottom();
     }
@@ -1106,7 +2812,10 @@ async function sendMessage() {
 
 function stopGeneration() {
 
-    if (abortController) {
+    if (
+        abortController
+    ) {
+
         abortController.abort();
     }
 }
@@ -1118,18 +2827,33 @@ function stopGeneration() {
 
 async function regenerateLast() {
 
-    if (isSending || !conversation.length) {
+    if (
+        isSending ||
+        !conversation.length
+    ) {
+
         return;
     }
+
 
     const lastUserIndex =
         [...conversation]
-            .map(m => m.role)
-            .lastIndexOf("user");
+            .map(
+                message =>
+                    message.role
+            )
+            .lastIndexOf(
+                "user"
+            );
 
-    if (lastUserIndex < 0) {
+
+    if (
+        lastUserIndex < 0
+    ) {
+
         return;
     }
+
 
     conversation =
         conversation.slice(
@@ -1137,9 +2861,12 @@ async function regenerateLast() {
             lastUserIndex + 1
         );
 
+
     saveConversation();
 
+
     renderConversation();
+
 
     await sendMessageFromHistory();
 }
@@ -1151,80 +2878,127 @@ async function regenerateLast() {
 
 async function sendMessageFromHistory() {
 
-    isSending = true;
+    if (
+        isSending
+    ) {
+
+        return;
+    }
+
+
+    isSending =
+        true;
+
 
     abortController =
         new AbortController();
 
-    sendBtn.classList.add("hidden");
-    stopBtn.classList.remove("hidden");
 
-    input.disabled = true;
+    sendBtn?.classList.add(
+        "hidden"
+    );
 
-    const ai = createAIMessage();
+    stopBtn?.classList.remove(
+        "hidden"
+    );
+
+
+    input.disabled =
+        true;
+
+
+    const ai =
+        createAIMessage();
+
 
     try {
 
-        const response = await fetch(
-            "/api/chat",
-            {
-                method: "POST",
+        const response =
+            await fetch(
+                "/api/chat",
+                {
+                    method: "POST",
 
-                headers: {
-                    "Content-Type":
-                        "application/json",
-                    "Accept":
-                        "application/json"
-                },
+                    headers: {
+                        "Content-Type":
+                            "application/json",
 
-                body: JSON.stringify({
-                    messages: conversation
-                }),
+                        "Accept":
+                            "application/json"
+                    },
 
-                signal:
-                    abortController.signal
-            }
-        );
+                    body: JSON.stringify({
+                        messages:
+                            conversation
+                    }),
 
-        const data =
-            await response.json();
+                    signal:
+                        abortController.signal
+                }
+            );
 
-        if (!response.ok) {
+
+        let data;
+
+
+        try {
+
+            data =
+                await response.json();
+
+        } catch {
+
             throw new Error(
-                data?.error ||
-                "Server error."
+                "Invalid server response."
             );
         }
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                data?.error ||
+                `Server error ${response.status}`
+            );
+        }
+
 
         const reply =
             String(
                 data?.reply || ""
             ).trim();
 
+
         if (!reply) {
+
             throw new Error(
                 "Empty AI response."
             );
         }
+
 
         await typeResponse(
             ai.content,
             reply
         );
 
+
         ai.actions.classList.remove(
             "hidden"
         );
+
 
         addSources(
             ai.row,
             data.sources
         );
 
+
         conversation.push({
             role: "assistant",
             content: reply
         });
+
 
         saveConversation();
 
@@ -1232,7 +3006,16 @@ async function sendMessageFromHistory() {
 
     } catch (error) {
 
-        if (error.name === "AbortError") {
+        console.error(
+            "Regenerate error:",
+            error
+        );
+
+
+        if (
+            error.name ===
+            "AbortError"
+        ) {
 
             ai.content.innerHTML =
                 "<em>Generation stopped.</em>";
@@ -1240,21 +3023,42 @@ async function sendMessageFromHistory() {
         } else {
 
             ai.content.innerHTML = `
+
                 <div class="error-box">
-                    ❌ ${escapeHtml(error.message)}
+
+                    ❌
+                    ${escapeHtml(
+                        error.message
+                    )}
+
                 </div>
+
             `;
         }
 
     } finally {
 
-        isSending = false;
-        abortController = null;
+        isSending =
+            false;
 
-        input.disabled = false;
 
-        sendBtn.classList.remove("hidden");
-        stopBtn.classList.add("hidden");
+        abortController =
+            null;
+
+
+        input.disabled =
+            false;
+
+
+        sendBtn?.classList.remove(
+            "hidden"
+        );
+
+
+        stopBtn?.classList.add(
+            "hidden"
+        );
+
 
         input.focus();
     }
@@ -1262,24 +3066,61 @@ async function sendMessageFromHistory() {
 
 
 /* =========================================================
-   CLEAR / NEW CHAT
+   NEW CHAT / CLEAR
    ========================================================= */
 
 function clearAll() {
 
-    conversation = [];
+    if (isSending) {
+
+        stopGeneration();
+    }
+
+
+    conversation =
+        [];
+
 
     localStorage.removeItem(
         STORAGE_KEY
     );
 
+
     renderConversation();
 
     updateHistory();
 
-    input.value = "";
 
-    input.focus();
+    if (input) {
+
+        input.value =
+            "";
+
+        input.style.height =
+            "auto";
+
+        input.focus();
+    }
+
+
+    pendingAttachment =
+        null;
+
+
+    if (
+        attachmentPreview
+    ) {
+
+        attachmentPreview.innerHTML =
+            "";
+    }
+
+
+    if (fileInput) {
+
+        fileInput.value =
+            "";
+    }
 }
 
 
@@ -1290,19 +3131,32 @@ function clearAll() {
 function attachSuggestions() {
 
     document
-        .querySelectorAll(".suggestion")
-        .forEach(button => {
+        .querySelectorAll(
+            ".suggestion"
+        )
+        .forEach(
+            button => {
 
-            button.onclick = () => {
+                button.onclick =
+                    () => {
 
-                input.value =
-                    button.dataset.message || "";
+                        if (!input)
+                            return;
 
-                input.focus();
 
-                sendMessage();
-            };
-        });
+                        input.value =
+                            button.dataset.message ||
+                            "";
+
+
+                        input.focus();
+
+
+                        sendMessage();
+                    };
+
+            }
+        );
 }
 
 
@@ -1312,84 +3166,161 @@ function attachSuggestions() {
 
 function updateHistory() {
 
-    if (!historyList) return;
+    if (!historyList) {
+        return;
+    }
 
-    historyList.innerHTML = "";
+
+    historyList.innerHTML =
+        "";
+
 
     const userMessages =
         conversation
-            .filter(m => m.role === "user")
+            .filter(
+                message =>
+                    message.role ===
+                    "user"
+            )
             .slice(-10)
             .reverse();
 
-    userMessages.forEach(m => {
 
-        const item =
-            document.createElement("button");
+    userMessages.forEach(
+        message => {
 
-        item.className =
-            "history-item";
+            const item =
+                document.createElement(
+                    "button"
+                );
 
-        item.textContent =
-            m.content.slice(0, 45);
 
-        item.title =
-            m.content;
+            item.type =
+                "button";
 
-        item.onclick = () => {
 
-            document
-                .querySelector(".chat-area")
-                ?.scrollTo({
-                    top: 0,
-                    behavior: "smooth"
-                });
-        };
+            item.className =
+                "history-item";
 
-        historyList.appendChild(item);
-    });
+
+            item.textContent =
+                message.content
+                    .replace(
+                        /\n/g,
+                        " "
+                    )
+                    .slice(
+                        0,
+                        45
+                    );
+
+
+            item.title =
+                message.content;
+
+
+            item.onclick =
+                () => {
+
+                    if (
+                        chatBox
+                    ) {
+
+                        chatBox.scrollTo({
+                            top: 0,
+                            behavior:
+                                "smooth"
+                        });
+
+                    }
+
+                };
+
+
+            historyList.appendChild(
+                item
+            );
+
+        }
+    );
 }
 
 
 /* =========================================================
-   FILE HANDLING
+   ATTACHMENT
    ========================================================= */
 
 function setAttachment(file) {
 
-    if (!file) return;
+    if (!file) {
+        return;
+    }
 
-    pendingAttachment = file;
 
-    if (!attachmentPreview) return;
+    pendingAttachment =
+        file;
+
+
+    if (!attachmentPreview) {
+        return;
+    }
+
 
     attachmentPreview.innerHTML = `
-        📎 ${escapeHtml(file.name)}
-        <button
-            type="button"
-            id="remove-attachment"
-        >
-            ×
-        </button>
+
+        <div class="jarvis-attachment-chip">
+
+            📎
+
+            <span>
+                ${escapeHtml(
+                    file.name
+                )}
+            </span>
+
+            <button
+                type="button"
+                class="jarvis-remove-attachment"
+                aria-label="Remove attachment"
+            >
+                ×
+            </button>
+
+        </div>
+
     `;
 
-    document
-        .getElementById("remove-attachment")
+
+    attachmentPreview
+        .querySelector(
+            ".jarvis-remove-attachment"
+        )
         ?.addEventListener(
             "click",
             () => {
 
-                pendingAttachment = null;
+                pendingAttachment =
+                    null;
+
 
                 if (fileInput) {
-                    fileInput.value = "";
+
+                    fileInput.value =
+                        "";
                 }
 
-                attachmentPreview.innerHTML = "";
+
+                attachmentPreview.innerHTML =
+                    "";
+
             }
         );
 }
 
+
+/* =========================================================
+   FILE INPUT
+   ========================================================= */
 
 fileInput?.addEventListener(
     "change",
@@ -1398,118 +3329,238 @@ fileInput?.addEventListener(
         const file =
             fileInput.files?.[0];
 
-        setAttachment(file);
+
+        if (file) {
+
+            setAttachment(
+                file
+            );
+        }
+
     }
 );
 
 
 /* =========================================================
-   FUNCTIONS
+   FUNCTION ITEMS
    ========================================================= */
 
 const functionItems =
     functionsPanel.querySelectorAll(
-        ".nandu-function-item"
+        ".jarvis-function-item"
     );
 
-functionItems.forEach(item => {
 
-    item.addEventListener(
-        "click",
-        async () => {
+functionItems.forEach(
+    item => {
 
-            const tool =
-                item.dataset.tool;
+        item.addEventListener(
+            "click",
+            async () => {
 
-            if (tool === "camera") {
-                closeFunctionsPanel();
-                openCamera();
-            }
+                const tool =
+                    item.dataset.tool;
 
-            else if (tool === "gallery") {
 
-                closeFunctionsPanel();
+                /* =========================================
+                   CAMERA
+                   ========================================= */
 
-                const imagePicker =
-                    document.createElement("input");
+                if (
+                    tool ===
+                    "camera"
+                ) {
 
-                imagePicker.type = "file";
-                imagePicker.accept = "image/*";
+                    closeFunctionsPanel();
 
-                imagePicker.onchange = () => {
+                    openCamera();
 
-                    const file =
-                        imagePicker.files?.[0];
+                    return;
+                }
 
-                    setAttachment(file);
-                };
 
-                imagePicker.click();
-            }
+                /* =========================================
+                   IMAGES
+                   ========================================= */
 
-            else if (tool === "files") {
+                if (
+                    tool ===
+                    "images"
+                ) {
 
-                closeFunctionsPanel();
+                    closeFunctionsPanel();
 
-                fileInput?.click();
-            }
 
-            else if (tool === "drive") {
+                    const imagePicker =
+                        document.createElement(
+                            "input"
+                        );
 
-                alert(
-                    "Google Drive connection ke liye Google OAuth / Drive API setup required hai."
-                );
-            }
 
-            else if (tool === "search") {
+                    imagePicker.type =
+                        "file";
 
-                const searchBox =
-                    functionsPanel.querySelector(
-                        ".nandu-search-box"
+
+                    imagePicker.accept =
+                        "image/*";
+
+
+                    imagePicker.onchange =
+                        () => {
+
+                            const file =
+                                imagePicker.files?.[0];
+
+
+                            if (file) {
+
+                                setAttachment(
+                                    file
+                                );
+                            }
+
+                        };
+
+
+                    imagePicker.click();
+
+
+                    return;
+                }
+
+
+                /* =========================================
+                   FILES
+                   ========================================= */
+
+                if (
+                    tool ===
+                    "files"
+                ) {
+
+                    closeFunctionsPanel();
+
+                    fileInput?.click();
+
+                    return;
+                }
+
+
+                /* =========================================
+                   DRIVE
+                   ========================================= */
+
+                if (
+                    tool ===
+                    "drive"
+                ) {
+
+                    alert(
+                        "Google Drive connect karne ke liye Google OAuth / Drive API setup required hai."
                     );
 
-                searchBox.classList.toggle(
-                    "show"
-                );
+                    return;
+                }
 
-                searchBox
-                    .querySelector(
-                        ".nandu-search-input"
-                    )
-                    ?.focus();
+
+                /* =========================================
+                   SEARCH
+                   ========================================= */
+
+                if (
+                    tool ===
+                    "search"
+                ) {
+
+                    const searchBox =
+                        functionsPanel.querySelector(
+                            ".jarvis-search-box"
+                        );
+
+
+                    searchBox?.classList.toggle(
+                        "show"
+                    );
+
+
+                    searchBox
+                        ?.querySelector(
+                            ".jarvis-search-input"
+                        )
+                        ?.focus();
+
+
+                    return;
+                }
+
+
+                /* =========================================
+                   CODE
+                   ========================================= */
+
+                if (
+                    tool ===
+                    "code"
+                ) {
+
+                    closeFunctionsPanel();
+
+
+                    input.value =
+                        "Help me write, explain, debug or improve this code:";
+
+
+                    input.focus();
+
+
+                    return;
+                }
+
+
+                /* =========================================
+                   LEARN
+                   ========================================= */
+
+                if (
+                    tool ===
+                    "learn"
+                ) {
+
+                    closeFunctionsPanel();
+
+
+                    input.value =
+                        "Explain this topic to me step by step in simple language:";
+
+
+                    input.focus();
+
+
+                    return;
+                }
+
+
+                /* =========================================
+                   SETTINGS
+                   ========================================= */
+
+                if (
+                    tool ===
+                    "settings"
+                ) {
+
+                    closeFunctionsPanel();
+
+                    openSettings();
+
+                    return;
+                }
+
             }
+        );
 
-            else if (tool === "code") {
-
-                input.value =
-                    "Help me write, explain, debug or improve this code:";
-
-                closeFunctionsPanel();
-
-                input.focus();
-
-            }
-
-            else if (tool === "learn") {
-
-                input.value =
-                    "Explain this topic to me step by step in simple language:";
-
-                closeFunctionsPanel();
-
-                input.focus();
-
-            }
-
-            else if (tool === "settings") {
-
-                closeFunctionsPanel();
-
-                openSettings();
-            }
-        }
-    );
-});
+    }
+);
 
 
 /* =========================================================
@@ -1518,42 +3569,63 @@ functionItems.forEach(item => {
 
 const searchInput =
     functionsPanel.querySelector(
-        ".nandu-search-input"
+        ".jarvis-search-input"
     );
+
 
 const searchGo =
     functionsPanel.querySelector(
-        ".nandu-search-go"
+        ".jarvis-search-go"
     );
+
 
 function useSearch() {
 
     const query =
         searchInput?.value.trim();
 
-    if (!query) return;
+
+    if (!query) {
+        return;
+    }
+
+
+    if (!input) {
+        return;
+    }
+
 
     input.value =
         `Search and explain this for me: ${query}`;
 
+
     closeFunctionsPanel();
+
 
     input.focus();
 }
+
 
 searchGo?.addEventListener(
     "click",
     useSearch
 );
 
+
 searchInput?.addEventListener(
     "keydown",
-    e => {
+    event => {
 
-        if (e.key === "Enter") {
-            e.preventDefault();
+        if (
+            event.key ===
+            "Enter"
+        ) {
+
+            event.preventDefault();
+
             useSearch();
         }
+
     }
 );
 
@@ -1564,48 +3636,98 @@ searchInput?.addEventListener(
 
 async function openCamera() {
 
-    cameraModal.classList.add("show");
+    cameraModal.classList.add(
+        "show"
+    );
+
+
+    if (
+        !navigator.mediaDevices ||
+        !navigator.mediaDevices.getUserMedia
+    ) {
+
+        cameraModal.classList.remove(
+            "show"
+        );
+
+
+        alert(
+            "Is browser me camera support available nahi hai."
+        );
+
+
+        return;
+    }
+
 
     try {
 
         cameraStream =
             await navigator.mediaDevices.getUserMedia({
                 video: {
-                    facingMode: "environment"
+                    facingMode:
+                        {
+                            ideal:
+                                "environment"
+                        }
                 },
+
                 audio: false
             });
+
 
         cameraVideo.srcObject =
             cameraStream;
 
     } catch (error) {
 
-        cameraModal.classList.remove("show");
+        console.error(
+            "Camera error:",
+            error
+        );
+
+
+        cameraModal.classList.remove(
+            "show"
+        );
+
 
         alert(
             "Camera open nahi ho saka. Browser me camera permission allow karein."
         );
-
-        console.error(error);
     }
 }
 
 
+/* =========================================================
+   CLOSE CAMERA
+   ========================================================= */
+
 function closeCamera() {
 
-    if (cameraStream) {
+    if (
+        cameraStream
+    ) {
 
         cameraStream
             .getTracks()
-            .forEach(track =>
-                track.stop()
+            .forEach(
+                track =>
+                    track.stop()
             );
 
-        cameraStream = null;
+
+        cameraStream =
+            null;
     }
 
-    cameraVideo.srcObject = null;
+
+    if (cameraVideo) {
+
+        cameraVideo.srcObject =
+            null;
+    }
+
 
     cameraModal.classList.remove(
         "show"
@@ -1613,9 +3735,13 @@ function closeCamera() {
 }
 
 
+/* =========================================================
+   CAMERA CANCEL
+   ========================================================= */
+
 cameraModal
     .querySelector(
-        ".nandu-camera-cancel"
+        ".jarvis-camera-cancel"
     )
     .addEventListener(
         "click",
@@ -1623,31 +3749,51 @@ cameraModal
     );
 
 
+/* =========================================================
+   CAMERA CAPTURE
+   ========================================================= */
+
 cameraModal
     .querySelector(
-        ".nandu-camera-capture"
+        ".jarvis-camera-capture"
     )
     .addEventListener(
         "click",
         () => {
 
-            if (!cameraVideo.videoWidth) {
+            if (
+                !cameraVideo ||
+                !cameraVideo.videoWidth
+            ) {
+
                 return;
             }
+
 
             const canvas =
                 document.createElement(
                     "canvas"
                 );
 
+
             canvas.width =
                 cameraVideo.videoWidth;
+
 
             canvas.height =
                 cameraVideo.videoHeight;
 
+
             const ctx =
-                canvas.getContext("2d");
+                canvas.getContext(
+                    "2d"
+                );
+
+
+            if (!ctx) {
+                return;
+            }
+
 
             ctx.drawImage(
                 cameraVideo,
@@ -1657,10 +3803,14 @@ cameraModal
                 canvas.height
             );
 
+
             canvas.toBlob(
                 blob => {
 
-                    if (!blob) return;
+                    if (!blob) {
+                        return;
+                    }
+
 
                     const file =
                         new File(
@@ -1672,13 +3822,19 @@ cameraModal
                             }
                         );
 
-                    setAttachment(file);
+
+                    setAttachment(
+                        file
+                    );
+
 
                     closeCamera();
+
                 },
                 "image/jpeg",
-                .92
+                0.92
             );
+
         }
     );
 
@@ -1694,18 +3850,25 @@ function openSettings() {
             "nandu-theme-dark"
         );
 
+
     const result =
         confirm(
             dark
-                ? "Dark mode ON hai. OK dabao Light Mode ke liye."
-                : "Light mode ON hai. OK dabao Dark Mode ke liye."
+                ? "Dark Mode ON hai.\n\nOK = Light Mode"
+                : "Light Mode ON hai.\n\nOK = Dark Mode"
         );
 
+
     if (result) {
+
         toggleTheme();
     }
 }
 
+
+/* =========================================================
+   LOAD THEME
+   ========================================================= */
 
 function loadTheme() {
 
@@ -1714,14 +3877,28 @@ function loadTheme() {
             THEME_KEY
         );
 
-    if (theme === "dark") {
+
+    if (
+        theme ===
+        "dark"
+    ) {
 
         document.body.classList.add(
+            "nandu-theme-dark"
+        );
+
+    } else {
+
+        document.body.classList.remove(
             "nandu-theme-dark"
         );
     }
 }
 
+
+/* =========================================================
+   TOGGLE THEME
+   ========================================================= */
 
 function toggleTheme() {
 
@@ -1729,8 +3906,10 @@ function toggleTheme() {
         "nandu-theme-dark"
     );
 
+
     localStorage.setItem(
         THEME_KEY,
+
         document.body.classList.contains(
             "nandu-theme-dark"
         )
@@ -1741,7 +3920,41 @@ function toggleTheme() {
 
 
 /* =========================================================
-   BUTTON EVENTS
+   OPTIONAL THEME BUTTONS
+   ========================================================= */
+
+const themeButtons = [
+    "#theme-btn",
+    "#theme-toggle",
+    ".theme-btn",
+    ".theme-toggle"
+];
+
+
+themeButtons.forEach(
+    selector => {
+
+        document
+            .querySelectorAll(
+                selector
+            )
+            .forEach(
+                button => {
+
+                    button.addEventListener(
+                        "click",
+                        toggleTheme
+                    );
+
+                }
+            );
+
+    }
+);
+
+
+/* =========================================================
+   SEND BUTTON
    ========================================================= */
 
 sendBtn?.addEventListener(
@@ -1749,28 +3962,43 @@ sendBtn?.addEventListener(
     sendMessage
 );
 
+
+/* =========================================================
+   STOP BUTTON
+   ========================================================= */
+
 stopBtn?.addEventListener(
     "click",
     stopGeneration
 );
 
 
+/* =========================================================
+   ENTER TO SEND
+   ========================================================= */
+
 input?.addEventListener(
     "keydown",
-    e => {
+    event => {
 
         if (
-            e.key === "Enter" &&
-            !e.shiftKey
+            event.key ===
+            "Enter" &&
+            !event.shiftKey
         ) {
 
-            e.preventDefault();
+            event.preventDefault();
 
             sendMessage();
         }
+
     }
 );
 
+
+/* =========================================================
+   AUTO RESIZE TEXTAREA
+   ========================================================= */
 
 input?.addEventListener(
     "input",
@@ -1779,20 +4007,30 @@ input?.addEventListener(
         input.style.height =
             "auto";
 
+
         input.style.height =
             Math.min(
                 input.scrollHeight,
                 160
             ) + "px";
+
     }
 );
 
+
+/* =========================================================
+   NEW CHAT
+   ========================================================= */
 
 newChatBtn?.addEventListener(
     "click",
     clearAll
 );
 
+
+/* =========================================================
+   CLEAR CHAT
+   ========================================================= */
 
 clearChatBtn?.addEventListener(
     "click",
@@ -1806,56 +4044,93 @@ clearChatBtn?.addEventListener(
 
 menuBtn?.addEventListener(
     "click",
-    e => {
+    event => {
 
-        e.stopPropagation();
+        event.stopPropagation();
 
-        sidebar.classList.toggle(
+
+        sidebar?.classList.toggle(
             "open"
         );
+
     }
 );
 
 
 document.addEventListener(
     "click",
-    e => {
+    event => {
 
         if (
-            window.innerWidth <= 768 &&
+            window.innerWidth <=
+            768 &&
             sidebar &&
             sidebar.classList.contains(
                 "open"
             ) &&
-            !sidebar.contains(e.target) &&
-            !menuBtn?.contains(e.target)
+            !sidebar.contains(
+                event.target
+            ) &&
+            !menuBtn?.contains(
+                event.target
+            )
         ) {
 
             sidebar.classList.remove(
                 "open"
             );
+
         }
+
     }
 );
 
 
 /* =========================================================
-   ESCAPE KEY
+   ESCAPE
    ========================================================= */
 
 document.addEventListener(
     "keydown",
-    e => {
+    event => {
 
-        if (e.key === "Escape") {
+        if (
+            event.key ===
+            "Escape"
+        ) {
 
             closeFunctionsPanel();
+
             closeCamera();
 
             sidebar?.classList.remove(
                 "open"
             );
+
         }
+
+    }
+);
+
+
+/* =========================================================
+   WINDOW RESIZE
+   ========================================================= */
+
+window.addEventListener(
+    "resize",
+    () => {
+
+        if (
+            window.innerWidth >
+            768
+        ) {
+
+            sidebar?.classList.remove(
+                "open"
+            );
+        }
+
     }
 );
 
@@ -1874,7 +4149,7 @@ updateHistory();
 
 input?.focus();
 
+
 console.log(
-    "AI Nandu final frontend loaded successfully."
+    "AI JARVIS FINAL script.js loaded successfully."
 );
-```
