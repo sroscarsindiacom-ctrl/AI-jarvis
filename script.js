@@ -1,83 +1,71 @@
 /* =========================================================
-   AI NANDU / JARVIS - FINAL script.js
-   =========================================================
-   Compatible with your current HTML.
+   JARVIS / AI NANDU - FINAL FRONTEND SCRIPT
+   ---------------------------------------------------------
+   FINAL FIXED VERSION
 
-   FEATURES
-   ✓ /api/chat
-   ✓ Send button
-   ✓ Enter to send
-   ✓ Shift + Enter = new line
-   ✓ Stop generation
-   ✓ New Chat
-   ✓ Clear Chat
-   ✓ LocalStorage conversation
-   ✓ Recent Chats
-   ✓ Mobile sidebar
-   ✓ Functions panel
+   ✓ Menu
+   ✓ Send Message
+   ✓ Enter to Send
+   ✓ Stop Generation
+   ✓ Top Right Functions Button
+   ✓ Right Side Functions Panel
    ✓ Camera
-   ✓ Photos
+   ✓ Images
    ✓ Files
-   ✓ Google Drive
-   ✓ Search mode
-   ✓ Code mode
-   ✓ Learn mode
+   ✓ Drive Placeholder
+   ✓ Search
+   ✓ Code
+   ✓ Learn
    ✓ Settings
-   ✓ Dark / Light mode
-   ✓ Markdown
-   ✓ DOMPurify
-   ✓ Highlight.js
-   ✓ Code copy
-   ✓ Regenerate
-   ✓ Sources
-   ✓ Attachment preview
-   ✓ Error handling
-   ✓ No duplicate Functions panel
+   ✓ Dark JARVIS UI
+   ✓ Conversation History
+   ✓ LocalStorage
+   ✓ Existing /api/chat preserved
+   ✓ Attachment + button preserved
+   ✓ Mobile Responsive
+   ✓ No Functions fallback on + button
    ========================================================= */
 
 
 /* =========================================================
-   DOM ELEMENTS
+   ELEMENTS
    ========================================================= */
 
-const input = document.getElementById("user-input");
-const sendBtn = document.getElementById("send-btn");
-const stopBtn = document.getElementById("stop-btn");
+const input =
+    document.getElementById("user-input");
 
-const chatBox = document.getElementById("chat-box");
+const sendBtn =
+    document.getElementById("send-btn");
 
-const newChatBtn = document.getElementById("new-chat-btn");
-const clearChatBtn = document.getElementById("clear-chat-btn");
+const stopBtn =
+    document.getElementById("stop-btn");
 
-const menuBtn = document.getElementById("menu-btn");
-const sidebar = document.getElementById("sidebar");
+const chatBox =
+    document.getElementById("chat-box");
 
-const fileInput = document.getElementById("file-input");
+const newChatBtn =
+    document.getElementById("new-chat-btn");
+
+const clearChatBtn =
+    document.getElementById("clear-chat-btn");
+
+const menuBtn =
+    document.getElementById("menu-btn");
+
+const sidebar =
+    document.getElementById("sidebar");
+
+const fileInput =
+    document.getElementById("file-input");
+
+const attachBtn =
+    document.getElementById("attach-btn");
+
 const attachmentPreview =
     document.getElementById("attachment-preview");
 
 const historyList =
     document.getElementById("history-list");
-
-const functionsOverlay =
-    document.getElementById("functions-overlay");
-
-const functionsPanel =
-    document.getElementById("functions-panel");
-
-const settingsOverlay =
-    document.getElementById("settings-overlay");
-
-const themeToggle =
-    document.getElementById("theme-toggle");
-
-
-/* =========================================================
-   STORAGE
-   ========================================================= */
-
-const STORAGE_KEY = "myAIConversation";
-const THEME_KEY = "aiNanduTheme";
 
 
 /* =========================================================
@@ -92,689 +80,1768 @@ let abortController = null;
 
 let pendingAttachment = null;
 
-let currentTool = null;
+let cameraStream = null;
+
+
+const STORAGE_KEY =
+    "myAIConversation";
+
+const THEME_KEY =
+    "aiNanduTheme";
 
 
 /* =========================================================
-   JARVIS / AI NANDU CSS
+   JARVIS UI CSS
    ========================================================= */
 
-(function injectNanduCSS() {
-
-    if (document.getElementById("nandu-final-css")) {
-        return;
-    }
-
-    const style = document.createElement("style");
-
-    style.id = "nandu-final-css";
-
-    style.textContent = `
-
-    /* ================================================
-       GENERAL
-       ================================================ */
-
-    body {
-        background:
-            radial-gradient(
-                circle at 65% 30%,
-                rgba(39,92,190,.12),
-                transparent 35%
-            ),
-            linear-gradient(
-                135deg,
-                #01060d,
-                #03101e 55%,
-                #020814
-            ) !important;
-
-        color: #f5f7ff;
-    }
+const jarvisCSS =
+    document.createElement("style");
 
 
-    /* ================================================
-       SIDEBAR
-       ================================================ */
+jarvisCSS.textContent = `
+
+/* =====================================================
+   GLOBAL
+   ===================================================== */
+
+:root {
+    --jarvis-bg: #020914;
+    --jarvis-bg2: #06101e;
+    --jarvis-card: rgba(7,18,33,.82);
+    --jarvis-border: rgba(94,145,220,.22);
+    --jarvis-blue: #287cff;
+    --jarvis-purple: #704cff;
+    --jarvis-text: #f5f7ff;
+    --jarvis-muted: #8d9bb0;
+}
+
+
+/* =====================================================
+   BODY
+   ===================================================== */
+
+body {
+    background:
+        radial-gradient(
+            circle at 65% 35%,
+            rgba(38,91,180,.10),
+            transparent 35%
+        ),
+        linear-gradient(
+            135deg,
+            #01060d,
+            #03101e 55%,
+            #020814
+        ) !important;
+
+    color: var(--jarvis-text);
+}
+
+
+/* =====================================================
+   SIDEBAR
+   ===================================================== */
+
+#sidebar {
+    background:
+        linear-gradient(
+            180deg,
+            rgba(3,12,24,.98),
+            rgba(2,8,17,.99)
+        ) !important;
+
+    border-right:
+        1px solid
+        rgba(79,131,210,.18) !important;
+
+    box-shadow:
+        10px 0 40px rgba(0,0,0,.18);
+}
+
+
+/* =====================================================
+   MOBILE MENU
+   ===================================================== */
+
+#menu-btn {
+    cursor: pointer !important;
+    z-index: 5000 !important;
+    position: relative !important;
+}
+
+
+/* =====================================================
+   HEADER / TOP BAR
+   ===================================================== */
+
+header,
+.top-bar,
+.chat-header,
+.navbar,
+.topbar {
+    background:
+        rgba(2,9,18,.82) !important;
+
+    border-bottom:
+        1px solid
+        rgba(84,128,200,.16) !important;
+
+    backdrop-filter:
+        blur(18px);
+}
+
+
+/* =====================================================
+   TOP RIGHT FUNCTIONS BUTTON
+   ===================================================== */
+
+#functions-btn,
+.nandu-top-functions-btn {
+
+    margin-left: auto !important;
+
+    height: 46px !important;
+
+    min-width: 125px !important;
+
+    padding:
+        0 18px !important;
+
+    border:
+        1px solid
+        rgba(77,125,255,.58) !important;
+
+    border-radius:
+        13px !important;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(25,70,145,.92),
+            rgba(72,48,150,.92)
+        ) !important;
+
+    color:
+        #ffffff !important;
+
+    font-size:
+        14px !important;
+
+    font-weight:
+        600 !important;
+
+    display:
+        inline-flex !important;
+
+    align-items:
+        center !important;
+
+    justify-content:
+        center !important;
+
+    gap:
+        8px !important;
+
+    cursor:
+        pointer !important;
+
+    box-shadow:
+        0 0 22px
+        rgba(45,110,255,.22) !important;
+
+    transition:
+        .2s ease !important;
+
+    position:
+        relative !important;
+
+    z-index:
+        100 !important;
+}
+
+
+#functions-btn:hover,
+.nandu-top-functions-btn:hover {
+
+    transform:
+        translateY(-1px) !important;
+
+    border-color:
+        rgba(90,160,255,.95) !important;
+
+    box-shadow:
+        0 0 30px
+        rgba(45,110,255,.40) !important;
+}
+
+
+#functions-btn:active,
+.nandu-top-functions-btn:active {
+
+    transform:
+        scale(.97) !important;
+}
+
+
+/* =====================================================
+   CHAT AREA
+   ===================================================== */
+
+#chat-box {
+    background:
+        radial-gradient(
+            circle at center,
+            rgba(29,77,150,.07),
+            transparent 48%
+        ) !important;
+}
+
+
+/* =====================================================
+   INPUT AREA
+   ===================================================== */
+
+#user-input {
+    background:
+        rgba(7,17,30,.90) !important;
+
+    color:
+        #ffffff !important;
+
+    border:
+        1px solid
+        rgba(78,130,207,.25) !important;
+
+    outline:
+        none !important;
+
+    box-shadow:
+        inset 0 0 25px rgba(0,0,0,.12);
+}
+
+
+#user-input::placeholder {
+    color:
+        #77859a !important;
+}
+
+
+/* =====================================================
+   SEND BUTTON
+   ===================================================== */
+
+#send-btn {
+
+    width:
+        56px !important;
+
+    height:
+        56px !important;
+
+    border-radius:
+        50% !important;
+
+    border:
+        0 !important;
+
+    background:
+        linear-gradient(
+            135deg,
+            #287cff,
+            #6948ff
+        ) !important;
+
+    color:
+        #ffffff !important;
+
+    display:
+        flex !important;
+
+    align-items:
+        center !important;
+
+    justify-content:
+        center !important;
+
+    cursor:
+        pointer !important;
+
+    box-shadow:
+        0 8px 28px
+        rgba(46,105,255,.35) !important;
+
+    transition:
+        .2s ease !important;
+}
+
+
+#send-btn:hover {
+
+    transform:
+        translateY(-2px)
+        scale(1.04);
+
+    box-shadow:
+        0 12px 35px
+        rgba(46,105,255,.50) !important;
+}
+
+
+#send-btn:active {
+
+    transform:
+        scale(.96);
+}
+
+
+/* =====================================================
+   STOP BUTTON
+   ===================================================== */
+
+#stop-btn {
+
+    width:
+        56px !important;
+
+    height:
+        56px !important;
+
+    border-radius:
+        50% !important;
+
+    background:
+        linear-gradient(
+            135deg,
+            #ef4444,
+            #b91c1c
+        ) !important;
+
+    color:
+        white !important;
+
+    border:
+        0 !important;
+
+    cursor:
+        pointer !important;
+}
+
+
+/* =====================================================
+   FUNCTIONS OVERLAY
+   ===================================================== */
+
+.nandu-functions-overlay {
+
+    position:
+        fixed;
+
+    inset:
+        0;
+
+    background:
+        rgba(0,0,0,.48);
+
+    backdrop-filter:
+        blur(4px);
+
+    z-index:
+        7998;
+
+    opacity:
+        0;
+
+    pointer-events:
+        none;
+
+    transition:
+        opacity .22s ease;
+}
+
+
+.nandu-functions-overlay.show {
+
+    opacity:
+        1;
+
+    pointer-events:
+        auto;
+}
+
+
+/* =====================================================
+   FUNCTIONS PANEL
+   ===================================================== */
+
+.nandu-functions-panel {
+
+    position:
+        fixed;
+
+    top:
+        70px;
+
+    right:
+        22px;
+
+    bottom:
+        22px;
+
+    width:
+        365px;
+
+    max-width:
+        calc(100vw - 30px);
+
+    overflow-y:
+        auto;
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(5,15,29,.98),
+            rgba(2,10,20,.98)
+        );
+
+    border:
+        1px solid
+        rgba(88,184,255,.85);
+
+    border-radius:
+        23px;
+
+    box-shadow:
+        0 0 35px
+        rgba(34,105,255,.18),
+        0 25px 80px
+        rgba(0,0,0,.60);
+
+    padding:
+        18px;
+
+    z-index:
+        7999;
+
+    opacity:
+        0;
+
+    transform:
+        translateX(30px)
+        scale(.97);
+
+    pointer-events:
+        none;
+
+    transition:
+        opacity .22s ease,
+        transform .22s ease;
+}
+
+
+.nandu-functions-panel.show {
+
+    opacity:
+        1;
+
+    transform:
+        translateX(0)
+        scale(1);
+
+    pointer-events:
+        auto;
+}
+
+
+/* =====================================================
+   FUNCTIONS HEADER
+   ===================================================== */
+
+.nandu-functions-head {
+
+    display:
+        flex;
+
+    align-items:
+        flex-start;
+
+    justify-content:
+        space-between;
+
+    padding:
+        4px 5px 17px;
+}
+
+
+.nandu-functions-title {
+
+    color:
+        #ffffff;
+
+    font-size:
+        25px;
+
+    font-weight:
+        700;
+}
+
+
+.nandu-functions-subtitle {
+
+    margin-top:
+        5px;
+
+    color:
+        #8d9caf;
+
+    font-size:
+        13px;
+}
+
+
+.nandu-functions-close {
+
+    width:
+        38px;
+
+    height:
+        38px;
+
+    border:
+        0;
+
+    border-radius:
+        50%;
+
+    background:
+        transparent;
+
+    color:
+        #c7cfdb;
+
+    font-size:
+        29px;
+
+    cursor:
+        pointer;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+}
+
+
+.nandu-functions-close:hover {
+
+    background:
+        rgba(255,255,255,.08);
+
+    color:
+        #ffffff;
+}
+
+
+/* =====================================================
+   FUNCTION ITEMS
+   ===================================================== */
+
+.nandu-functions-grid {
+
+    display:
+        flex;
+
+    flex-direction:
+        column;
+
+    gap:
+        10px;
+}
+
+
+.nandu-function-item {
+
+    width:
+        100%;
+
+    min-height:
+        76px;
+
+    border:
+        1px solid
+        rgba(101,132,177,.22);
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(10,24,43,.88),
+            rgba(5,15,28,.88)
+        );
+
+    border-radius:
+        15px;
+
+    cursor:
+        pointer;
+
+    padding:
+        12px 14px;
+
+    text-align:
+        left;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    gap:
+        13px;
+
+    color:
+        white;
+
+    transition:
+        .18s ease;
+}
+
+
+.nandu-function-item:hover {
+
+    transform:
+        translateX(-3px);
+
+    border-color:
+        rgba(81,145,255,.60);
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(14,37,70,.95),
+            rgba(12,23,50,.95)
+        );
+
+    box-shadow:
+        0 5px 25px
+        rgba(38,105,255,.13);
+}
+
+
+.nandu-function-icon {
+
+    width:
+        45px;
+
+    height:
+        45px;
+
+    min-width:
+        45px;
+
+    border-radius:
+        12px;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    background:
+        rgba(25,80,170,.18);
+
+    font-size:
+        23px;
+}
+
+
+.nandu-function-text {
+
+    flex:
+        1;
+}
+
+
+.nandu-function-text strong {
+
+    display:
+        block;
+
+    color:
+        #ffffff;
+
+    font-size:
+        16px;
+
+    margin-bottom:
+        4px;
+}
+
+
+.nandu-function-text span {
+
+    display:
+        block;
+
+    color:
+        #8e9aac;
+
+    font-size:
+        12px;
+}
+
+
+.nandu-function-arrow {
+
+    color:
+        #cbd5e1;
+
+    font-size:
+        24px;
+}
+
+
+/* =====================================================
+   SEARCH BOX
+   ===================================================== */
+
+.nandu-search-box {
+
+    margin-top:
+        12px;
+
+    display:
+        none;
+
+    gap:
+        7px;
+}
+
+
+.nandu-search-box.show {
+
+    display:
+        flex;
+}
+
+
+.nandu-search-input {
+
+    flex:
+        1;
+
+    border:
+        1px solid
+        #334155;
+
+    background:
+        #071321;
+
+    color:
+        #ffffff;
+
+    outline:
+        none;
+
+    border-radius:
+        11px;
+
+    padding:
+        11px 12px;
+}
+
+
+.nandu-search-go {
+
+    border:
+        0;
+
+    border-radius:
+        11px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #287cff,
+            #704cff
+        );
+
+    color:
+        white;
+
+    padding:
+        0 15px;
+
+    cursor:
+        pointer;
+}
+
+
+/* =====================================================
+   CAMERA
+   ===================================================== */
+
+.nandu-camera-modal {
+
+    position:
+        fixed;
+
+    inset:
+        0;
+
+    background:
+        rgba(0,0,0,.78);
+
+    z-index:
+        9000;
+
+    display:
+        none;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    padding:
+        15px;
+}
+
+
+.nandu-camera-modal.show {
+
+    display:
+        flex;
+}
+
+
+.nandu-camera-card {
+
+    width:
+        520px;
+
+    max-width:
+        100%;
+
+    background:
+        #071321;
+
+    border:
+        1px solid
+        rgba(83,140,255,.45);
+
+    border-radius:
+        20px;
+
+    padding:
+        15px;
+}
+
+
+.nandu-camera-card video {
+
+    width:
+        100%;
+
+    max-height:
+        65vh;
+
+    object-fit:
+        cover;
+
+    background:
+        #000;
+
+    border-radius:
+        14px;
+}
+
+
+.nandu-camera-actions {
+
+    display:
+        flex;
+
+    gap:
+        8px;
+
+    margin-top:
+        12px;
+}
+
+
+.nandu-camera-actions button {
+
+    flex:
+        1;
+
+    border:
+        0;
+
+    border-radius:
+        11px;
+
+    padding:
+        12px;
+
+    cursor:
+        pointer;
+
+    font-weight:
+        600;
+}
+
+
+.nandu-camera-capture {
+
+    background:
+        linear-gradient(
+            135deg,
+            #287cff,
+            #704cff
+        );
+
+    color:
+        white;
+}
+
+
+.nandu-camera-cancel {
+
+    background:
+        #1e293b;
+
+    color:
+        white;
+}
+
+
+/* =====================================================
+   WELCOME
+   ===================================================== */
+
+.welcome {
+
+    min-height:
+        100%;
+
+    display:
+        flex;
+
+    flex-direction:
+        column;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    text-align:
+        center;
+
+    padding:
+        35px 20px;
+}
+
+
+.welcome h1 {
+
+    color:
+        #ffffff;
+}
+
+
+.welcome p {
+
+    color:
+        #8c9aad;
+}
+
+
+/* =====================================================
+   AI LOGO
+   ===================================================== */
+
+.welcome-icon img {
+
+    filter:
+        drop-shadow(
+            0 0 25px
+            rgba(52,132,255,.55)
+        );
+}
+
+
+/* =====================================================
+   MESSAGE
+   ===================================================== */
+
+.message-content {
+
+    color:
+        #edf3ff;
+}
+
+
+.user-content {
+
+    background:
+        linear-gradient(
+            135deg,
+            #1458c8,
+            #5638cc
+        ) !important;
+
+    color:
+        #ffffff !important;
+}
+
+
+.bot-avatar {
+
+    background:
+        rgba(30,89,180,.20) !important;
+
+    box-shadow:
+        0 0 20px
+        rgba(36,111,255,.18);
+}
+
+
+/* =====================================================
+   CODE
+   ===================================================== */
+
+.code-container {
+
+    border:
+        1px solid
+        rgba(86,127,190,.28);
+
+    border-radius:
+        12px;
+
+    overflow:
+        hidden;
+
+    background:
+        #030914;
+
+    margin:
+        12px 0;
+}
+
+
+.code-header {
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        space-between;
+
+    padding:
+        8px 11px;
+
+    background:
+        #0b1728;
+
+    color:
+        #8da1ba;
+
+    font-size:
+        12px;
+}
+
+
+.copy-code-btn {
+
+    border:
+        1px solid
+        #334155;
+
+    background:
+        #111e30;
+
+    color:
+        #dbeafe;
+
+    border-radius:
+        7px;
+
+    padding:
+        4px 9px;
+
+    cursor:
+        pointer;
+}
+
+
+/* =====================================================
+   MOBILE
+   ===================================================== */
+
+@media (max-width: 768px) {
 
     #sidebar {
-        background:
-            linear-gradient(
-                180deg,
-                rgba(3,12,24,.98),
-                rgba(2,8,17,.99)
-            ) !important;
 
-        border-right:
-            1px solid
-            rgba(79,131,210,.20) !important;
-    }
+        position:
+            fixed !important;
 
-
-    /* ================================================
-       TOPBAR
-       ================================================ */
-
-    .topbar {
-        background:
-            rgba(2,9,18,.86) !important;
-
-        border-bottom:
-            1px solid
-            rgba(84,128,200,.16) !important;
-
-        backdrop-filter:
-            blur(18px);
-    }
-
-
-    /* ================================================
-       CHAT
-       ================================================ */
-
-    #chat-box {
-        background:
-            radial-gradient(
-                circle at center,
-                rgba(29,77,150,.07),
-                transparent 50%
-            ) !important;
-    }
-
-
-    /* ================================================
-       INPUT
-       ================================================ */
-
-    #user-input {
-        background:
-            rgba(7,17,30,.92) !important;
-
-        color:
-            #ffffff !important;
-
-        border:
-            1px solid
-            rgba(78,130,207,.28) !important;
-
-        outline:
-            none !important;
-    }
-
-
-    #user-input::placeholder {
-        color:
-            #77859a !important;
-    }
-
-
-    /* ================================================
-       SEND
-       ================================================ */
-
-    #send-btn {
-        width:
-            56px !important;
-
-        height:
-            56px !important;
-
-        min-width:
-            56px !important;
-
-        border-radius:
-            50% !important;
-
-        border:
+        left:
             0 !important;
 
-        background:
-            linear-gradient(
-                135deg,
-                #287cff,
-                #6948ff
-            ) !important;
+        top:
+            0 !important;
 
-        color:
-            white !important;
+        bottom:
+            0 !important;
 
-        display:
-            flex !important;
+        width:
+            285px !important;
 
-        align-items:
-            center !important;
+        z-index:
+            7000 !important;
 
-        justify-content:
-            center !important;
-
-        cursor:
-            pointer !important;
-
-        box-shadow:
-            0 8px 28px
-            rgba(46,105,255,.35) !important;
+        transform:
+            translateX(-105%) !important;
 
         transition:
-            .2s ease !important;
+            transform .25s ease !important;
     }
 
 
-    #send-btn:hover {
+    #sidebar.open {
+
         transform:
-            translateY(-2px)
-            scale(1.04);
+            translateX(0) !important;
     }
 
 
-    #send-btn:active {
-        transform:
-            scale(.95);
-    }
+    .nandu-functions-panel {
 
+        top:
+            70px;
 
-    /* ================================================
-       STOP
-       ================================================ */
+        right:
+            10px;
 
-    #stop-btn {
+        bottom:
+            10px;
+
         width:
-            56px !important;
+            calc(100vw - 20px);
 
-        height:
-            56px !important;
-
-        min-width:
-            56px !important;
-
-        border-radius:
-            50% !important;
-
-        border:
-            0 !important;
-
-        background:
-            linear-gradient(
-                135deg,
-                #ef4444,
-                #b91c1c
-            ) !important;
-
-        color:
-            white !important;
-
-        cursor:
-            pointer !important;
-    }
-
-
-    /* ================================================
-       FUNCTIONS PANEL
-       ================================================ */
-
-    #functions-overlay {
-        z-index:
-            8000 !important;
-
-        backdrop-filter:
-            blur(5px);
-    }
-
-
-    #functions-panel {
-        z-index:
-            8001 !important;
-
-        box-shadow:
-            0 0 40px
-            rgba(34,105,255,.20),
-            0 25px 80px
-            rgba(0,0,0,.60);
-    }
-
-
-    /* ================================================
-       SETTINGS
-       ================================================ */
-
-    #settings-overlay {
-        z-index:
-            8100 !important;
-    }
-
-
-    /* ================================================
-       MESSAGE
-       ================================================ */
-
-    .message-content {
-        color:
-            #edf3ff;
-    }
-
-
-    .user-content {
-        background:
-            linear-gradient(
-                135deg,
-                #1458c8,
-                #5638cc
-            ) !important;
-
-        color:
-            white !important;
-    }
-
-
-    /* ================================================
-       CODE
-       ================================================ */
-
-    .nandu-code-wrapper {
-        margin:
-            12px 0;
-
-        border:
-            1px solid
-            rgba(86,127,190,.28);
-
-        border-radius:
-            12px;
-
-        overflow:
-            hidden;
-
-        background:
-            #030914;
-    }
-
-
-    .nandu-code-header {
-        display:
-            flex;
-
-        align-items:
-            center;
-
-        justify-content:
-            space-between;
-
-        padding:
-            8px 11px;
-
-        background:
-            #0b1728;
-
-        color:
-            #8da1ba;
-
-        font-size:
-            12px;
-    }
-
-
-    .nandu-copy-code {
-        border:
-            1px solid
-            #334155;
-
-        background:
-            #111e30;
-
-        color:
-            #dbeafe;
-
-        border-radius:
-            7px;
-
-        padding:
-            5px 10px;
-
-        cursor:
-            pointer;
-    }
-
-
-    /* ================================================
-       SOURCES
-       ================================================ */
-
-    .nandu-sources {
-        display:
-            flex;
-
-        flex-direction:
-            column;
-
-        gap:
-            6px;
-
-        margin-top:
-            12px;
-
-        padding:
-            12px;
-
-        border:
-            1px solid
-            rgba(78,130,207,.20);
-
-        border-radius:
-            12px;
-
-        background:
-            rgba(7,18,33,.60);
-    }
-
-
-    .nandu-sources-title {
-        font-weight:
-            700;
-
-        color:
-            #dbeafe;
-    }
-
-
-    .nandu-sources a {
-        color:
-            #75aaff;
-
-        text-decoration:
+        max-width:
             none;
 
-        font-size:
-            13px;
-    }
-
-
-    .nandu-sources a:hover {
-        text-decoration:
-            underline;
-    }
-
-
-    /* ================================================
-       ERROR
-       ================================================ */
-
-    .nandu-error {
-        padding:
-            12px;
-
         border-radius:
-            10px;
-
-        background:
-            rgba(127,29,29,.30);
-
-        border:
-            1px solid
-            rgba(248,113,113,.30);
-
-        color:
-            #fecaca;
+            20px;
     }
 
 
-    /* ================================================
-       TYPING
-       ================================================ */
+    .nandu-functions-title {
 
-    .nandu-typing {
-        display:
-            flex;
-
-        align-items:
-            center;
-
-        gap:
-            5px;
-
-        padding:
-            6px 2px;
+        font-size:
+            22px;
     }
 
 
-    .nandu-typing span {
+    #send-btn,
+    #stop-btn {
+
         width:
-            7px;
+            50px !important;
 
         height:
-            7px;
-
-        border-radius:
-            50%;
-
-        background:
-            #7da7ff;
-
-        animation:
-            nanduTyping 1.1s infinite ease-in-out;
+            50px !important;
     }
 
 
-    .nandu-typing span:nth-child(2) {
-        animation-delay:
-            .15s;
-    }
+    #functions-btn,
+    .nandu-top-functions-btn {
 
+        min-width:
+            46px !important;
 
-    .nandu-typing span:nth-child(3) {
-        animation-delay:
-            .30s;
-    }
+        width:
+            46px !important;
 
-
-    @keyframes nanduTyping {
-
-        0%, 80%, 100% {
-            opacity:
-                .25;
-
-            transform:
-                translateY(0);
-        }
-
-        40% {
-            opacity:
-                1;
-
-            transform:
-                translateY(-4px);
-        }
-    }
-
-
-    /* ================================================
-       ATTACHMENT
-       ================================================ */
-
-    #attachment-preview {
-        color:
-            #dbeafe;
-    }
-
-
-    .nandu-attachment {
-        display:
-            inline-flex;
-
-        align-items:
-            center;
-
-        gap:
-            8px;
+        height:
+            42px !important;
 
         padding:
-            8px 12px;
-
-        margin-bottom:
-            8px;
-
-        border:
-            1px solid
-            rgba(80,130,220,.25);
-
-        border-radius:
-            10px;
-
-        background:
-            rgba(7,20,40,.75);
+            0 !important;
     }
 
 
-    .nandu-remove-attachment {
-        border:
-            0;
+    #functions-btn span,
+    .nandu-top-functions-btn span {
 
-        background:
-            transparent;
-
-        color:
-            #f87171;
-
-        font-size:
-            18px;
-
-        cursor:
-            pointer;
-    }
-
-
-    /* ================================================
-       ACTION BUTTONS
-       ================================================ */
-
-    .nandu-message-actions {
         display:
-            flex;
-
-        gap:
-            8px;
-
-        margin:
-            7px 0 15px 55px;
+            none !important;
     }
+}
 
+`;
 
-    .nandu-action-btn {
-        border:
-            1px solid
-            rgba(100,130,180,.25);
-
-        background:
-            rgba(8,20,36,.85);
-
-        color:
-            #cbd5e1;
-
-        border-radius:
-            8px;
-
-        padding:
-            6px 10px;
-
-        cursor:
-            pointer;
-
-        font-size:
-            12px;
-    }
-
-
-    .nandu-action-btn:hover {
-        background:
-            rgba(28,62,110,.85);
-
-        color:
-            white;
-    }
-
-
-    /* ================================================
-       MOBILE
-       ================================================ */
-
-    @media (max-width: 768px) {
-
-        #sidebar {
-            position:
-                fixed !important;
-
-            left:
-                0 !important;
-
-            top:
-                0 !important;
-
-            bottom:
-                0 !important;
-
-            width:
-                285px !important;
-
-            z-index:
-                7000 !important;
-
-            transform:
-                translateX(-105%) !important;
-
-            transition:
-                transform .25s ease !important;
-        }
-
-
-        #sidebar.open {
-            transform:
-                translateX(0) !important;
-        }
-
-
-        #send-btn,
-        #stop-btn {
-            width:
-                50px !important;
-
-            height:
-                50px !important;
-
-            min-width:
-                50px !important;
-        }
-
-    }
-
-    `;
-
-    document.head.appendChild(style);
-
-})();
+document.head.appendChild(jarvisCSS);
 
 
 /* =========================================================
-   STORAGE
+   CREATE TOP RIGHT FUNCTIONS BUTTON
+   ---------------------------------------------------------
+   IMPORTANT:
+   If HTML already has #functions-btn -> use it.
+   If not -> create it automatically.
+   NEVER use + attach button as Functions button.
    ========================================================= */
 
-function saveConversation() {
+function ensureFunctionsButton() {
 
-    try {
-
-        localStorage.setItem(
-            STORAGE_KEY,
-            JSON.stringify(conversation)
+    let button =
+        document.getElementById(
+            "functions-btn"
         );
 
-    } catch (error) {
 
-        console.error(
-            "Conversation save error:",
-            error
+    if (button) {
+
+        button.classList.add(
+            "nandu-top-functions-btn"
         );
+
+        button.innerHTML =
+            `✦ <span>Functions</span>`;
+
+        button.title =
+            "Functions";
+
+        return button;
+    }
+
+
+    const possibleHeader =
+        document.querySelector(
+            "header, .topbar, .top-bar, .chat-header, .navbar"
+        );
+
+
+    if (!possibleHeader) {
+
+        console.warn(
+            "Top header not found. Functions button will be created after DOM layout."
+        );
+
+        return null;
+    }
+
+
+    button =
+        document.createElement(
+            "button"
+        );
+
+
+    button.id =
+        "functions-btn";
+
+
+    button.className =
+        "nandu-top-functions-btn";
+
+
+    button.type =
+        "button";
+
+
+    button.title =
+        "Functions";
+
+
+    button.innerHTML =
+        `✦ <span>Functions</span>`;
+
+
+    possibleHeader.appendChild(
+        button
+    );
+
+
+    return button;
+}
+
+
+/* =========================================================
+   FUNCTIONS PANEL
+   ========================================================= */
+
+const functionsOverlay =
+    document.createElement("div");
+
+functionsOverlay.className =
+    "nandu-functions-overlay";
+
+
+const functionsPanel =
+    document.createElement("div");
+
+functionsPanel.className =
+    "nandu-functions-panel";
+
+
+functionsPanel.innerHTML = `
+
+    <div class="nandu-functions-head">
+
+        <div>
+
+            <div class="nandu-functions-title">
+                Functions
+            </div>
+
+            <div class="nandu-functions-subtitle">
+                Choose a tool to get started
+            </div>
+
+        </div>
+
+        <button
+            class="nandu-functions-close"
+            type="button"
+        >
+            ×
+        </button>
+
+    </div>
+
+
+    <div class="nandu-functions-grid">
+
+        <button
+            class="nandu-function-item"
+            data-tool="camera"
+            type="button"
+        >
+
+            <div class="nandu-function-icon">
+                📷
+            </div>
+
+            <div class="nandu-function-text">
+
+                <strong>
+                    Camera
+                </strong>
+
+                <span>
+                    Take a photo
+                </span>
+
+            </div>
+
+            <div class="nandu-function-arrow">
+                →
+            </div>
+
+        </button>
+
+
+        <button
+            class="nandu-function-item"
+            data-tool="gallery"
+            type="button"
+        >
+
+            <div class="nandu-function-icon">
+                🖼️
+            </div>
+
+            <div class="nandu-function-text">
+
+                <strong>
+                    Images
+                </strong>
+
+                <span>
+                    Upload or generate images
+                </span>
+
+            </div>
+
+            <div class="nandu-function-arrow">
+                →
+            </div>
+
+        </button>
+
+
+        <button
+            class="nandu-function-item"
+            data-tool="files"
+            type="button"
+        >
+
+            <div class="nandu-function-icon">
+                📎
+            </div>
+
+            <div class="nandu-function-text">
+
+                <strong>
+                    Files
+                </strong>
+
+                <span>
+                    Upload files from device
+                </span>
+
+            </div>
+
+            <div class="nandu-function-arrow">
+                →
+            </div>
+
+        </button>
+
+
+        <button
+            class="nandu-function-item"
+            data-tool="drive"
+            type="button"
+        >
+
+            <div class="nandu-function-icon">
+                📁
+            </div>
+
+            <div class="nandu-function-text">
+
+                <strong>
+                    Drive
+                </strong>
+
+                <span>
+                    Access files from Google Drive
+                </span>
+
+            </div>
+
+            <div class="nandu-function-arrow">
+                →
+            </div>
+
+        </button>
+
+
+        <button
+            class="nandu-function-item"
+            data-tool="search"
+            type="button"
+        >
+
+            <div class="nandu-function-icon">
+                🔍
+            </div>
+
+            <div class="nandu-function-text">
+
+                <strong>
+                    Search
+                </strong>
+
+                <span>
+                    Search on the web
+                </span>
+
+            </div>
+
+            <div class="nandu-function-arrow">
+                →
+            </div>
+
+        </button>
+
+
+        <button
+            class="nandu-function-item"
+            data-tool="code"
+            type="button"
+        >
+
+            <div class="nandu-function-icon">
+                💻
+            </div>
+
+            <div class="nandu-function-text">
+
+                <strong>
+                    Code
+                </strong>
+
+                <span>
+                    Write, explain & debug code
+                </span>
+
+            </div>
+
+            <div class="nandu-function-arrow">
+                →
+            </div>
+
+        </button>
+
+
+        <button
+            class="nandu-function-item"
+            data-tool="learn"
+            type="button"
+        >
+
+            <div class="nandu-function-icon">
+                📚
+            </div>
+
+            <div class="nandu-function-text">
+
+                <strong>
+                    Learn
+                </strong>
+
+                <span>
+                    Explain any topic
+                </span>
+
+            </div>
+
+            <div class="nandu-function-arrow">
+                →
+            </div>
+
+        </button>
+
+
+        <button
+            class="nandu-function-item"
+            data-tool="settings"
+            type="button"
+        >
+
+            <div class="nandu-function-icon">
+                ⚙️
+            </div>
+
+            <div class="nandu-function-text">
+
+                <strong>
+                    Settings
+                </strong>
+
+                <span>
+                    Customize your experience
+                </span>
+
+            </div>
+
+            <div class="nandu-function-arrow">
+                →
+            </div>
+
+        </button>
+
+    </div>
+
+
+    <div class="nandu-search-box">
+
+        <input
+            class="nandu-search-input"
+            type="text"
+            placeholder="What do you want to search?"
+        >
+
+        <button
+            class="nandu-search-go"
+            type="button"
+        >
+            Go
+        </button>
+
+    </div>
+`;
+
+
+document.body.appendChild(
+    functionsOverlay
+);
+
+document.body.appendChild(
+    functionsPanel
+);
+
+
+/* =========================================================
+   CAMERA MODAL
+   ========================================================= */
+
+const cameraModal =
+    document.createElement("div");
+
+cameraModal.className =
+    "nandu-camera-modal";
+
+
+cameraModal.innerHTML = `
+
+    <div class="nandu-camera-card">
+
+        <video
+            id="nandu-camera-video"
+            autoplay
+            playsinline
+        ></video>
+
+        <div class="nandu-camera-actions">
+
+            <button
+                class="nandu-camera-capture"
+                type="button"
+            >
+                📸 Capture
+            </button>
+
+            <button
+                class="nandu-camera-cancel"
+                type="button"
+            >
+                Cancel
+            </button>
+
+        </div>
+
+    </div>
+`;
+
+
+document.body.appendChild(
+    cameraModal
+);
+
+
+const cameraVideo =
+    document.getElementById(
+        "nandu-camera-video"
+    );
+
+
+/* =========================================================
+   FUNCTIONS OPEN / CLOSE
+   ========================================================= */
+
+function openFunctionsPanel() {
+
+    functionsOverlay.classList.add(
+        "show"
+    );
+
+    functionsPanel.classList.add(
+        "show"
+    );
+}
+
+
+function closeFunctionsPanel() {
+
+    functionsOverlay.classList.remove(
+        "show"
+    );
+
+    functionsPanel.classList.remove(
+        "show"
+    );
+
+    functionsPanel
+        .querySelector(
+            ".nandu-search-box"
+        )
+        ?.classList.remove(
+            "show"
+        );
+}
+
+
+function toggleFunctionsPanel() {
+
+    if (
+        functionsPanel.classList.contains(
+            "show"
+        )
+    ) {
+
+        closeFunctionsPanel();
+
+    } else {
+
+        openFunctionsPanel();
     }
 }
 
 
-function loadConversation() {
+functionsOverlay.addEventListener(
+    "click",
+    closeFunctionsPanel
+);
+
+
+functionsPanel
+    .querySelector(
+        ".nandu-functions-close"
+    )
+    .addEventListener(
+        "click",
+        closeFunctionsPanel
+    );
+
+
+/* =========================================================
+   TOP RIGHT FUNCTIONS BUTTON
+   ========================================================= */
+
+const functionsButton =
+    ensureFunctionsButton();
+
+
+if (functionsButton) {
+
+    functionsButton.onclick =
+        function(event) {
+
+            event.preventDefault();
+
+            event.stopPropagation();
+
+            toggleFunctionsPanel();
+        };
+}
+
+
+/* =========================================================
+   LOAD / SAVE
+   ========================================================= */
+
+function loadSaved() {
 
     try {
 
@@ -785,29 +1852,28 @@ function loadConversation() {
                 ) || "[]"
             );
 
-        if (!Array.isArray(saved)) {
-            conversation = [];
-            return;
-        }
 
-        conversation =
-            saved.filter(message => {
+        if (
+            Array.isArray(saved)
+        ) {
 
-                return (
-                    message &&
-                    (
-                        message.role === "user" ||
-                        message.role === "assistant"
-                    ) &&
-                    typeof message.content === "string"
+            conversation =
+                saved.filter(
+                    m =>
+                        m &&
+                        (
+                            m.role === "user" ||
+                            m.role === "assistant"
+                        ) &&
+                        typeof m.content === "string" &&
+                        m.content.trim()
                 );
-
-            });
+        }
 
     } catch (error) {
 
         console.error(
-            "Conversation load error:",
+            "Load conversation error:",
             error
         );
 
@@ -816,110 +1882,104 @@ function loadConversation() {
 }
 
 
+function saveConversation() {
+
+    try {
+
+        localStorage.setItem(
+            STORAGE_KEY,
+            JSON.stringify(
+                conversation
+            )
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Save conversation error:",
+            error
+        );
+    }
+}
+
+
 /* =========================================================
-   HTML ESCAPE
+   HELPERS
    ========================================================= */
+
+function scrollToBottom() {
+
+    requestAnimationFrame(() => {
+
+        if (chatBox) {
+
+            chatBox.scrollTop =
+                chatBox.scrollHeight;
+        }
+    });
+}
+
 
 function escapeHtml(text) {
 
     const div =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
 
     div.textContent =
-        String(text ?? "");
+        text;
 
     return div.innerHTML;
 }
 
 
-/* =========================================================
-   MARKDOWN
-   ========================================================= */
-
 function renderMarkdown(text) {
-
-    const safeText =
-        String(text ?? "");
 
     if (
         typeof marked === "undefined"
     ) {
 
         return escapeHtml(
-            safeText
+            text
         ).replace(
             /\n/g,
             "<br>"
         );
     }
 
-    try {
 
-        marked.setOptions({
-            breaks: true,
-            gfm: true
-        });
+    marked.setOptions({
 
-        const html =
-            marked.parse(
-                safeText
-            );
+        breaks:
+            true,
 
-        if (
-            typeof DOMPurify !== "undefined"
-        ) {
+        gfm:
+            true
+    });
 
-            return DOMPurify.sanitize(
-                html,
-                {
-                    ADD_ATTR: [
-                        "target",
-                        "rel"
-                    ]
-                }
-            );
-        }
 
-        return html;
+    const raw =
+        marked.parse(text);
 
-    } catch (error) {
 
-        console.error(
-            "Markdown error:",
-            error
-        );
+    if (
+        typeof DOMPurify !== "undefined"
+    ) {
 
-        return escapeHtml(
-            safeText
-        ).replace(
-            /\n/g,
-            "<br>"
+        return DOMPurify.sanitize(
+            raw,
+            {
+                ADD_ATTR: [
+                    "target",
+                    "rel"
+                ]
+            }
         );
     }
-}
 
 
-/* =========================================================
-   LINK SAFETY
-   ========================================================= */
-
-function secureLinks(container) {
-
-    if (!container) {
-        return;
-    }
-
-    container
-        .querySelectorAll("a")
-        .forEach(link => {
-
-            link.target =
-                "_blank";
-
-            link.rel =
-                "noopener noreferrer";
-
-        });
+    return raw;
 }
 
 
@@ -927,208 +1987,202 @@ function secureLinks(container) {
    CODE BLOCKS
    ========================================================= */
 
-function enhanceCodeBlocks(container) {
+function enhanceCodeBlocks(
+    container
+) {
 
     if (!container) {
         return;
     }
 
-    const codeBlocks =
-        container.querySelectorAll(
+
+    container
+        .querySelectorAll(
             "pre code"
-        );
-
-    codeBlocks.forEach(code => {
-
-        const pre =
-            code.parentElement;
-
-        if (!pre) {
-            return;
-        }
-
-        if (
-            pre.parentElement?.classList.contains(
-                "nandu-code-wrapper"
-            )
-        ) {
-            return;
-        }
-
-        try {
-
-            if (
-                window.hljs
-            ) {
-
-                hljs.highlightElement(
-                    code
-                );
-            }
-
-        } catch (error) {
-
-            console.warn(
-                "Highlight error:",
-                error
-            );
-        }
-
-
-        const wrapper =
-            document.createElement(
-                "div"
-            );
-
-        wrapper.className =
-            "nandu-code-wrapper";
-
-
-        const header =
-            document.createElement(
-                "div"
-            );
-
-        header.className =
-            "nandu-code-header";
-
-
-        let language =
-            "code";
-
-
-        [...code.classList]
-            .forEach(className => {
-
-                if (
-                    className.startsWith(
-                        "language-"
-                    )
-                ) {
-
-                    language =
-                        className.replace(
-                            "language-",
-                            ""
-                        );
-                }
-
-            });
-
-
-        const languageText =
-            document.createElement(
-                "span"
-            );
-
-        languageText.textContent =
-            language;
-
-
-        const copyButton =
-            document.createElement(
-                "button"
-            );
-
-        copyButton.type =
-            "button";
-
-        copyButton.className =
-            "nandu-copy-code";
-
-        copyButton.textContent =
-            "Copy";
-
-
-        copyButton.addEventListener(
-            "click",
-            async () => {
+        )
+        .forEach(
+            code => {
 
                 try {
 
-                    await navigator
-                        .clipboard
-                        .writeText(
-                            code.textContent
+                    if (
+                        window.hljs
+                    ) {
+
+                        hljs.highlightElement(
+                            code
                         );
+                    }
 
-                    copyButton.textContent =
-                        "Copied!";
+                } catch {}
 
-                    setTimeout(
-                        () => {
 
-                            copyButton.textContent =
-                                "Copy";
+                const pre =
+                    code.parentElement;
 
-                        },
-                        1200
-                    );
 
-                } catch {
+                if (
+                    pre.parentElement &&
+                    pre.parentElement.classList.contains(
+                        "code-container"
+                    )
+                ) {
 
-                    copyButton.textContent =
-                        "Failed";
+                    return;
                 }
 
+
+                const wrapper =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                wrapper.className =
+                    "code-container";
+
+
+                const header =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                header.className =
+                    "code-header";
+
+
+                const language =
+                    [
+                        ...code.classList
+                    ]
+                        .find(
+                            c =>
+                                c.startsWith(
+                                    "language-"
+                                )
+                        )
+                        ?.replace(
+                            "language-",
+                            ""
+                        ) ||
+                        "code";
+
+
+                const languageSpan =
+                    document.createElement(
+                        "span"
+                    );
+
+
+                languageSpan.textContent =
+                    language;
+
+
+                const copy =
+                    document.createElement(
+                        "button"
+                    );
+
+
+                copy.className =
+                    "copy-code-btn";
+
+
+                copy.textContent =
+                    "Copy";
+
+
+                copy.onclick =
+                    async () => {
+
+                        try {
+
+                            await navigator
+                                .clipboard
+                                .writeText(
+                                    code.textContent
+                                );
+
+
+                            copy.textContent =
+                                "Copied!";
+
+
+                            setTimeout(
+                                () => {
+
+                                    copy.textContent =
+                                        "Copy";
+
+                                },
+                                1200
+                            );
+
+                        } catch {
+
+                            copy.textContent =
+                                "Failed";
+                        }
+                    };
+
+
+                header.append(
+                    languageSpan,
+                    copy
+                );
+
+
+                pre.replaceWith(
+                    wrapper
+                );
+
+
+                wrapper.append(
+                    header,
+                    pre
+                );
             }
         );
 
 
-        header.append(
-            languageText,
-            copyButton
+    container
+        .querySelectorAll(
+            "a"
+        )
+        .forEach(
+            a => {
+
+                a.target =
+                    "_blank";
+
+                a.rel =
+                    "noopener noreferrer";
+            }
         );
-
-
-        pre.parentNode.insertBefore(
-            wrapper,
-            pre
-        );
-
-
-        wrapper.append(
-            header,
-            pre
-        );
-
-    });
-
-
-    secureLinks(
-        container
-    );
 }
 
 
 /* =========================================================
-   SCROLL
+   WELCOME
    ========================================================= */
 
-function scrollToBottom() {
+function removeWelcome() {
 
-    requestAnimationFrame(() => {
-
-        if (!chatBox) {
-            return;
-        }
-
-        chatBox.scrollTop =
-            chatBox.scrollHeight;
-
-    });
+    chatBox
+        ?.querySelector(
+            ".welcome"
+        )
+        ?.remove();
 }
 
-
-/* =========================================================
-   WELCOME SCREEN
-   ========================================================= */
 
 function showWelcome() {
 
     if (!chatBox) {
         return;
     }
+
 
     chatBox.innerHTML = `
 
@@ -1149,123 +2203,113 @@ function showWelcome() {
 
             </div>
 
+
             <h1>
                 Hi Samir! 👋
             </h1>
+
 
             <p>
                 How can I help you today?
             </p>
 
+
             <div class="suggestions">
 
                 <button
                     class="suggestion"
-                    type="button"
                     data-message="Explain quantum computing in simple words."
                 >
+
                     📚
+
                     <span>
-                        <strong>Explain</strong>
+
+                        <strong>
+                            Explain
+                        </strong>
+
                         <small>
                             Explain any topic simply
                         </small>
+
                     </span>
+
                 </button>
 
 
                 <button
                     class="suggestion"
-                    type="button"
                     data-message="Write a Python program to sort a list."
                 >
+
                     💻
+
                     <span>
-                        <strong>Write</strong>
+
+                        <strong>
+                            Write
+                        </strong>
+
                         <small>
                             Create or fix code
                         </small>
+
                     </span>
+
                 </button>
 
 
                 <button
                     class="suggestion"
-                    type="button"
                     data-message="Create an image of a futuristic city."
                 >
+
                     🖼️
+
                     <span>
-                        <strong>Create</strong>
+
+                        <strong>
+                            Create
+                        </strong>
+
                         <small>
                             Create something new
                         </small>
+
                     </span>
+
                 </button>
 
 
                 <button
                     class="suggestion"
-                    type="button"
                     data-message="Create a 30 day plan to learn AI."
                 >
+
                     🎓
+
                     <span>
-                        <strong>Study</strong>
+
+                        <strong>
+                            Study
+                        </strong>
+
                         <small>
                             Learn step by step
                         </small>
+
                     </span>
+
                 </button>
 
             </div>
 
         </div>
-
     `;
 
 
-    document
-        .querySelectorAll(
-            ".suggestion"
-        )
-        .forEach(button => {
-
-            button.addEventListener(
-                "click",
-                () => {
-
-                    if (!input) {
-                        return;
-                    }
-
-                    input.value =
-                        button.dataset.message ||
-                        "";
-
-                    input.focus();
-
-                    sendMessage();
-                }
-            );
-
-        });
-
-}
-
-
-/* =========================================================
-   REMOVE WELCOME
-   ========================================================= */
-
-function removeWelcome() {
-
-    chatBox
-        ?.querySelector(
-            ".welcome"
-        )
-        ?.remove();
-
+    attachSuggestions();
 }
 
 
@@ -1273,11 +2317,14 @@ function removeWelcome() {
    USER MESSAGE
    ========================================================= */
 
-function addUserMessage(text) {
+function addUserMessage(
+    text
+) {
 
     if (!chatBox) {
         return;
     }
+
 
     removeWelcome();
 
@@ -1286,6 +2333,7 @@ function addUserMessage(text) {
         document.createElement(
             "div"
         );
+
 
     row.className =
         "message-row user-row";
@@ -1296,6 +2344,7 @@ function addUserMessage(text) {
             "div"
         );
 
+
     inner.className =
         "message-inner";
 
@@ -1305,8 +2354,10 @@ function addUserMessage(text) {
             "div"
         );
 
+
     avatar.className =
         "avatar user-avatar";
+
 
     avatar.textContent =
         "👤";
@@ -1317,8 +2368,10 @@ function addUserMessage(text) {
             "div"
         );
 
+
     content.className =
         "message-content user-content";
+
 
     content.textContent =
         text;
@@ -1329,9 +2382,11 @@ function addUserMessage(text) {
         content
     );
 
+
     row.appendChild(
         inner
     );
+
 
     chatBox.appendChild(
         row
@@ -1356,6 +2411,7 @@ function createAIMessage() {
             "div"
         );
 
+
     row.className =
         "message-row bot-row";
 
@@ -1364,6 +2420,7 @@ function createAIMessage() {
         document.createElement(
             "div"
         );
+
 
     inner.className =
         "message-inner";
@@ -1374,6 +2431,7 @@ function createAIMessage() {
             "div"
         );
 
+
     avatar.className =
         "avatar bot-avatar";
 
@@ -1383,20 +2441,26 @@ function createAIMessage() {
             "img"
         );
 
+
     logo.src =
         "logo.png";
+
 
     logo.alt =
         "AI Nandu";
 
+
     logo.style.width =
         "28px";
+
 
     logo.style.height =
         "28px";
 
+
     logo.style.objectFit =
         "contain";
+
 
     logo.style.borderRadius =
         "50%";
@@ -1412,32 +2476,21 @@ function createAIMessage() {
             "div"
         );
 
+
     content.className =
         "message-content markdown-content";
 
 
     content.innerHTML = `
 
-        <div class="nandu-typing">
+        <div class="typing">
 
             <span></span>
             <span></span>
             <span></span>
 
         </div>
-
     `;
-
-
-    inner.append(
-        avatar,
-        content
-    );
-
-
-    row.appendChild(
-        inner
-    );
 
 
     const actions =
@@ -1445,33 +2498,27 @@ function createAIMessage() {
             "div"
         );
 
+
     actions.className =
-        "nandu-message-actions";
+        "message-actions hidden";
 
 
-    actions.style.display =
-        "none";
-
-
-    const regenerate =
+    const regen =
         document.createElement(
             "button"
         );
 
-    regenerate.type =
-        "button";
 
-    regenerate.className =
-        "nandu-action-btn";
-
-    regenerate.textContent =
+    regen.textContent =
         "↻ Regenerate";
 
 
-    regenerate.addEventListener(
-        "click",
-        regenerateLast
-    );
+    regen.className =
+        "action-btn";
+
+
+    regen.onclick =
+        regenerateLast;
 
 
     const copy =
@@ -1479,18 +2526,16 @@ function createAIMessage() {
             "button"
         );
 
-    copy.type =
-        "button";
-
-    copy.className =
-        "nandu-action-btn";
 
     copy.textContent =
         "Copy";
 
 
-    copy.addEventListener(
-        "click",
+    copy.className =
+        "action-btn";
+
+
+    copy.onclick =
         async () => {
 
             try {
@@ -1502,8 +2547,10 @@ function createAIMessage() {
                         ""
                     );
 
+
                 copy.textContent =
                     "Copied!";
+
 
                 setTimeout(
                     () => {
@@ -1519,16 +2566,24 @@ function createAIMessage() {
 
                 copy.textContent =
                     "Failed";
-
             }
-
-        }
-    );
+        };
 
 
     actions.append(
-        regenerate,
+        regen,
         copy
+    );
+
+
+    inner.append(
+        avatar,
+        content
+    );
+
+
+    row.appendChild(
+        inner
     );
 
 
@@ -1548,9 +2603,37 @@ function createAIMessage() {
     return {
         row,
         content,
-        actions
+        actions,
+        copy
     };
+}
 
+
+/* =========================================================
+   RESPONSE
+   ========================================================= */
+
+async function typeResponse(
+    target,
+    text
+) {
+
+    target.dataset.raw =
+        text;
+
+
+    target.innerHTML =
+        renderMarkdown(
+            text
+        );
+
+
+    enhanceCodeBlocks(
+        target
+    );
+
+
+    scrollToBottom();
 }
 
 
@@ -1558,26 +2641,16 @@ function createAIMessage() {
    SOURCES
    ========================================================= */
 
-function addSources(row, sources) {
+function addSources(
+    row,
+    sources
+) {
 
     if (
-        !row ||
         !Array.isArray(sources) ||
         !sources.length
     ) {
-        return;
-    }
 
-
-    const validSources =
-        sources.filter(
-            source =>
-                source &&
-                source.url
-        );
-
-
-    if (!validSources.length) {
         return;
     }
 
@@ -1587,17 +2660,16 @@ function addSources(row, sources) {
             "div"
         );
 
+
     box.className =
-        "nandu-sources";
+        "sources";
 
 
     const title =
         document.createElement(
-            "div"
+            "strong"
         );
 
-    title.className =
-        "nandu-sources-title";
 
     title.textContent =
         "Sources";
@@ -1608,31 +2680,43 @@ function addSources(row, sources) {
     );
 
 
-    validSources.forEach(
+    sources.forEach(
         source => {
 
-            const link =
+            if (
+                !source?.url
+            ) {
+
+                return;
+            }
+
+
+            const a =
                 document.createElement(
                     "a"
                 );
 
-            link.href =
+
+            a.href =
                 source.url;
 
-            link.target =
+
+            a.target =
                 "_blank";
 
-            link.rel =
+
+            a.rel =
                 "noopener noreferrer";
 
-            link.textContent =
+
+            a.textContent =
                 source.title ||
                 source.url;
 
-            box.appendChild(
-                link
-            );
 
+            box.appendChild(
+                a
+            );
         }
     );
 
@@ -1640,242 +2724,6 @@ function addSources(row, sources) {
     row.appendChild(
         box
     );
-
-}
-
-
-/* =========================================================
-   ATTACHMENT
-   ========================================================= */
-
-function setAttachment(file) {
-
-    if (!file) {
-        return;
-    }
-
-
-    pendingAttachment =
-        file;
-
-
-    if (!attachmentPreview) {
-        return;
-    }
-
-
-    attachmentPreview.innerHTML = `
-
-        <div class="nandu-attachment">
-
-            <span>
-                📎
-                ${escapeHtml(file.name)}
-            </span>
-
-            <button
-                type="button"
-                class="nandu-remove-attachment"
-                id="nandu-remove-attachment"
-                aria-label="Remove attachment"
-            >
-                ×
-            </button>
-
-        </div>
-
-    `;
-
-
-    document
-        .getElementById(
-            "nandu-remove-attachment"
-        )
-        ?.addEventListener(
-            "click",
-            () => {
-
-                pendingAttachment =
-                    null;
-
-                if (fileInput) {
-                    fileInput.value =
-                        "";
-                }
-
-                attachmentPreview.innerHTML =
-                    "";
-
-            }
-        );
-
-}
-
-
-/* =========================================================
-   FILE INPUT
-   ========================================================= */
-
-fileInput?.addEventListener(
-    "change",
-    () => {
-
-        const file =
-            fileInput.files?.[0];
-
-        if (file) {
-            setAttachment(file);
-        }
-
-        /* Restore normal accept after selection */
-
-        fileInput.setAttribute(
-            "accept",
-            "image/*,.txt,.md,.json,.csv,.js,.html,.css,.py,.pdf,.doc,.docx,.xls,.xlsx"
-        );
-
-        fileInput.removeAttribute(
-            "capture"
-        );
-
-    }
-);
-
-
-/* =========================================================
-   SEND BUTTON STATE
-   ========================================================= */
-
-function setSendingState(sending) {
-
-    isSending =
-        sending;
-
-
-    if (sending) {
-
-        sendBtn?.classList.add(
-            "hidden"
-        );
-
-        if (stopBtn) {
-
-            stopBtn.classList.remove(
-                "hidden"
-            );
-
-            stopBtn.disabled =
-                false;
-        }
-
-        if (input) {
-            input.disabled =
-                true;
-        }
-
-    } else {
-
-        sendBtn?.classList.remove(
-            "hidden"
-        );
-
-        if (stopBtn) {
-
-            stopBtn.classList.add(
-                "hidden"
-            );
-
-            stopBtn.disabled =
-                false;
-        }
-
-        if (input) {
-            input.disabled =
-                false;
-        }
-
-    }
-
-}
-
-
-/* =========================================================
-   API MESSAGE
-   ========================================================= */
-
-async function requestAI(messages) {
-
-    abortController =
-        new AbortController();
-
-
-    const response =
-        await fetch(
-            "/api/chat",
-            {
-                method:
-                    "POST",
-
-                headers: {
-                    "Content-Type":
-                        "application/json",
-
-                    "Accept":
-                        "application/json"
-                },
-
-                body:
-                    JSON.stringify({
-                        messages
-                    }),
-
-                signal:
-                    abortController.signal
-            }
-        );
-
-
-    let data;
-
-
-    const contentType =
-        response.headers.get(
-            "content-type"
-        ) || "";
-
-
-    if (
-        contentType.includes(
-            "application/json"
-        )
-    ) {
-
-        data =
-            await response.json();
-
-    } else {
-
-        const text =
-            await response.text();
-
-        throw new Error(
-            text ||
-            `Server error ${response.status}`
-        );
-    }
-
-
-    if (!response.ok) {
-
-        throw new Error(
-            data?.error ||
-            `Server error ${response.status}`
-        );
-
-    }
-
-
-    return data;
 }
 
 
@@ -1885,12 +2733,22 @@ async function requestAI(messages) {
 
 async function sendMessage() {
 
-    if (isSending) {
+    if (
+        isSending
+    ) {
+
         return;
     }
 
 
-    if (!input) {
+    if (
+        !input
+    ) {
+
+        console.error(
+            "user-input not found"
+        );
+
         return;
     }
 
@@ -1908,12 +2766,43 @@ async function sendMessage() {
     }
 
 
+    isSending =
+        true;
+
+
+    abortController =
+        new AbortController();
+
+
+    if (sendBtn) {
+
+        sendBtn.classList.add(
+            "hidden"
+        );
+
+        sendBtn.disabled =
+            true;
+    }
+
+
+    if (stopBtn) {
+
+        stopBtn.classList.remove(
+            "hidden"
+        );
+
+        stopBtn.disabled =
+            false;
+    }
+
+
+    input.disabled =
+        true;
+
+
     const finalText =
         text ||
         "Please analyze the attached file.";
-
-
-    setSendingState(true);
 
 
     addUserMessage(
@@ -1922,6 +2811,7 @@ async function sendMessage() {
 
 
     conversation.push({
+
         role:
             "user",
 
@@ -1936,6 +2826,7 @@ async function sendMessage() {
     input.value =
         "";
 
+
     input.style.height =
         "auto";
 
@@ -1946,10 +2837,62 @@ async function sendMessage() {
 
     try {
 
-        const data =
-            await requestAI(
-                conversation
+        const response =
+            await fetch(
+                "/api/chat",
+                {
+                    method:
+                        "POST",
+
+                    headers: {
+
+                        "Content-Type":
+                            "application/json",
+
+                        "Accept":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify({
+
+                            messages:
+                                conversation
+
+                        }),
+
+                    signal:
+                        abortController.signal
+                }
             );
+
+
+        let data =
+            null;
+
+
+        try {
+
+            data =
+                await response.json();
+
+        } catch {
+
+            throw new Error(
+                "Server ne valid JSON response nahi diya."
+            );
+        }
+
+
+        if (
+            !response.ok
+        ) {
+
+            throw new Error(
+                data?.error ||
+                `Server error ${response.status}`
+            );
+        }
 
 
         const reply =
@@ -1959,32 +2902,25 @@ async function sendMessage() {
             ).trim();
 
 
-        if (!reply) {
+        if (
+            !reply
+        ) {
 
             throw new Error(
                 "AI ne koi response nahi diya."
             );
-
         }
 
 
-        ai.content.dataset.raw =
-            reply;
-
-
-        ai.content.innerHTML =
-            renderMarkdown(
-                reply
-            );
-
-
-        enhanceCodeBlocks(
-            ai.content
+        await typeResponse(
+            ai.content,
+            reply
         );
 
 
-        ai.actions.style.display =
-            "flex";
+        ai.actions.classList.remove(
+            "hidden"
+        );
 
 
         addSources(
@@ -1994,6 +2930,7 @@ async function sendMessage() {
 
 
         conversation.push({
+
             role:
                 "assistant",
 
@@ -2008,13 +2945,9 @@ async function sendMessage() {
         updateHistory();
 
 
-    } catch (error) {
-
-        console.error(
-            "AI request error:",
-            error
-        );
-
+    } catch (
+        error
+    ) {
 
         if (
             error.name ===
@@ -2026,9 +2959,15 @@ async function sendMessage() {
 
         } else {
 
+            console.error(
+                "Send error:",
+                error
+            );
+
+
             ai.content.innerHTML = `
 
-                <div class="nandu-error">
+                <div class="error-box">
 
                     ❌
                     ${escapeHtml(
@@ -2037,53 +2976,75 @@ async function sendMessage() {
                     )}
 
                 </div>
-
             `;
-
         }
 
+
     } finally {
+
+        isSending =
+            false;
+
 
         abortController =
             null;
 
-        setSendingState(
-            false
-        );
+
+        input.disabled =
+            false;
+
+
+        if (sendBtn) {
+
+            sendBtn.classList.remove(
+                "hidden"
+            );
+
+            sendBtn.disabled =
+                false;
+        }
+
+
+        if (stopBtn) {
+
+            stopBtn.classList.add(
+                "hidden"
+            );
+        }
+
+
+        input.focus();
 
 
         pendingAttachment =
             null;
 
 
-        if (attachmentPreview) {
+        if (
+            attachmentPreview
+        ) {
 
             attachmentPreview.innerHTML =
                 "";
-
         }
 
 
-        if (fileInput) {
+        if (
+            fileInput
+        ) {
 
             fileInput.value =
                 "";
-
         }
 
 
-        input?.focus();
-
-
         scrollToBottom();
-
     }
-
 }
 
 
 /* =========================================================
-   STOP GENERATION
+   STOP
    ========================================================= */
 
 function stopGeneration() {
@@ -2093,14 +3054,12 @@ function stopGeneration() {
     ) {
 
         abortController.abort();
-
     }
-
 }
 
 
 /* =========================================================
-   REGENERATE LAST ANSWER
+   REGENERATE
    ========================================================= */
 
 async function regenerateLast() {
@@ -2117,8 +3076,8 @@ async function regenerateLast() {
     const lastUserIndex =
         conversation
             .map(
-                message =>
-                    message.role
+                m =>
+                    m.role
             )
             .lastIndexOf(
                 "user"
@@ -2126,8 +3085,7 @@ async function regenerateLast() {
 
 
     if (
-        lastUserIndex <
-        0
+        lastUserIndex < 0
     ) {
 
         return;
@@ -2147,9 +3105,42 @@ async function regenerateLast() {
     renderConversation();
 
 
-    setSendingState(
-        true
-    );
+    await sendMessageFromHistory();
+}
+
+
+/* =========================================================
+   SEND FROM HISTORY
+   ========================================================= */
+
+async function sendMessageFromHistory() {
+
+    isSending =
+        true;
+
+
+    abortController =
+        new AbortController();
+
+
+    if (sendBtn) {
+
+        sendBtn.classList.add(
+            "hidden"
+        );
+    }
+
+
+    if (stopBtn) {
+
+        stopBtn.classList.remove(
+            "hidden"
+        );
+    }
+
+
+    input.disabled =
+        true;
 
 
     const ai =
@@ -2158,10 +3149,49 @@ async function regenerateLast() {
 
     try {
 
-        const data =
-            await requestAI(
-                conversation
+        const response =
+            await fetch(
+                "/api/chat",
+                {
+                    method:
+                        "POST",
+
+                    headers: {
+
+                        "Content-Type":
+                            "application/json",
+
+                        "Accept":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify({
+
+                            messages:
+                                conversation
+
+                        }),
+
+                    signal:
+                        abortController.signal
+                }
             );
+
+
+        const data =
+            await response.json();
+
+
+        if (
+            !response.ok
+        ) {
+
+            throw new Error(
+                data?.error ||
+                "Server error."
+            );
+        }
 
 
         const reply =
@@ -2171,32 +3201,25 @@ async function regenerateLast() {
             ).trim();
 
 
-        if (!reply) {
+        if (
+            !reply
+        ) {
 
             throw new Error(
-                "AI ne koi response nahi diya."
+                "Empty AI response."
             );
-
         }
 
 
-        ai.content.dataset.raw =
-            reply;
-
-
-        ai.content.innerHTML =
-            renderMarkdown(
-                reply
-            );
-
-
-        enhanceCodeBlocks(
-            ai.content
+        await typeResponse(
+            ai.content,
+            reply
         );
 
 
-        ai.actions.style.display =
-            "flex";
+        ai.actions.classList.remove(
+            "hidden"
+        );
 
 
         addSources(
@@ -2206,6 +3229,7 @@ async function regenerateLast() {
 
 
         conversation.push({
+
             role:
                 "assistant",
 
@@ -2220,7 +3244,9 @@ async function regenerateLast() {
         updateHistory();
 
 
-    } catch (error) {
+    } catch (
+        error
+    ) {
 
         if (
             error.name ===
@@ -2234,202 +3260,58 @@ async function regenerateLast() {
 
             ai.content.innerHTML = `
 
-                <div class="nandu-error">
+                <div class="error-box">
 
                     ❌
                     ${escapeHtml(
-                        error.message ||
-                        "Something went wrong."
+                        error.message
                     )}
 
                 </div>
-
             `;
-
         }
 
+
     } finally {
+
+        isSending =
+            false;
+
 
         abortController =
             null;
 
-        setSendingState(
-            false
+
+        input.disabled =
+            false;
+
+
+        sendBtn?.classList.remove(
+            "hidden"
         );
 
-        input?.focus();
 
+        stopBtn?.classList.add(
+            "hidden"
+        );
+
+
+        input.focus();
     }
-
 }
 
 
 /* =========================================================
-   RENDER SAVED CONVERSATION
-   ========================================================= */
-
-function renderConversation() {
-
-    if (!chatBox) {
-        return;
-    }
-
-
-    chatBox.innerHTML =
-        "";
-
-
-    if (!conversation.length) {
-
-        showWelcome();
-
-        return;
-    }
-
-
-    conversation.forEach(
-        message => {
-
-            if (
-                message.role ===
-                "user"
-            ) {
-
-                addUserMessage(
-                    message.content
-                );
-
-                return;
-            }
-
-
-            if (
-                message.role ===
-                "assistant"
-            ) {
-
-                const ai =
-                    createAIMessage();
-
-
-                ai.content.dataset.raw =
-                    message.content;
-
-
-                ai.content.innerHTML =
-                    renderMarkdown(
-                        message.content
-                    );
-
-
-                enhanceCodeBlocks(
-                    ai.content
-                );
-
-
-                ai.actions.style.display =
-                    "flex";
-
-            }
-
-        }
-    );
-
-
-    scrollToBottom();
-
-}
-
-
-/* =========================================================
-   HISTORY
-   ========================================================= */
-
-function updateHistory() {
-
-    if (!historyList) {
-        return;
-    }
-
-
-    historyList.innerHTML =
-        "";
-
-
-    const userMessages =
-        conversation
-            .filter(
-                message =>
-                    message.role ===
-                    "user"
-            )
-            .slice(-10)
-            .reverse();
-
-
-    userMessages.forEach(
-        (message, index) => {
-
-            const button =
-                document.createElement(
-                    "button"
-                );
-
-
-            button.type =
-                "button";
-
-            button.className =
-                "history-item";
-
-
-            button.textContent =
-                message.content.length >
-                45
-                    ? message.content.slice(
-                        0,
-                        45
-                    ) + "..."
-                    : message.content;
-
-
-            button.title =
-                message.content;
-
-
-            button.addEventListener(
-                "click",
-                () => {
-
-                    /* Re-rendering keeps
-                       the current saved chat */
-
-                    renderConversation();
-
-                }
-            );
-
-
-            historyList.appendChild(
-                button
-            );
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   NEW CHAT
+   CLEAR / NEW CHAT
    ========================================================= */
 
 function clearAll() {
 
-    if (isSending) {
+    if (
+        isSending
+    ) {
 
         stopGeneration();
-
     }
 
 
@@ -2442,6 +3324,12 @@ function clearAll() {
     );
 
 
+    renderConversation();
+
+
+    updateHistory();
+
+
     if (input) {
 
         input.value =
@@ -2450,384 +3338,648 @@ function clearAll() {
         input.style.height =
             "auto";
 
+        input.focus();
+    }
+}
+
+
+/* =========================================================
+   SUGGESTIONS
+   ========================================================= */
+
+function attachSuggestions() {
+
+    document
+        .querySelectorAll(
+            ".suggestion"
+        )
+        .forEach(
+            button => {
+
+                button.onclick =
+                    () => {
+
+                        if (!input) {
+                            return;
+                        }
+
+
+                        input.value =
+                            button.dataset.message ||
+                            "";
+
+
+                        input.focus();
+
+
+                        sendMessage();
+                    };
+            }
+        );
+}
+
+
+/* =========================================================
+   HISTORY
+   ========================================================= */
+
+function updateHistory() {
+
+    if (
+        !historyList
+    ) {
+
+        return;
+    }
+
+
+    historyList.innerHTML =
+        "";
+
+
+    const userMessages =
+        conversation
+            .filter(
+                m =>
+                    m.role ===
+                    "user"
+            )
+            .slice(-10)
+            .reverse();
+
+
+    userMessages.forEach(
+        m => {
+
+            const item =
+                document.createElement(
+                    "button"
+                );
+
+
+            item.className =
+                "history-item";
+
+
+            item.type =
+                "button";
+
+
+            item.textContent =
+                m.content.slice(
+                    0,
+                    45
+                );
+
+
+            item.title =
+                m.content;
+
+
+            item.onclick =
+                () => {
+
+                    chatBox?.scrollTo({
+
+                        top:
+                            0,
+
+                        behavior:
+                            "smooth"
+                    });
+                };
+
+
+            historyList.appendChild(
+                item
+            );
+        }
+    );
+}
+
+
+/* =========================================================
+   FILE ATTACHMENT
+   ========================================================= */
+
+function setAttachment(
+    file
+) {
+
+    if (!file) {
+        return;
     }
 
 
     pendingAttachment =
-        null;
+        file;
 
 
-    if (attachmentPreview) {
-
-        attachmentPreview.innerHTML =
-            "";
-
-    }
-
-
-    if (fileInput) {
-
-        fileInput.value =
-            "";
-
-    }
-
-
-    renderConversation();
-
-    updateHistory();
-
-
-    input?.focus();
-
-}
-
-
-/* =========================================================
-   MOBILE SIDEBAR
-   ========================================================= */
-
-function toggleSidebar() {
-
-    if (!sidebar) {
+    if (!attachmentPreview) {
         return;
     }
 
 
-    sidebar.classList.toggle(
-        "open"
-    );
+    attachmentPreview.innerHTML = `
 
+        📎 ${escapeHtml(file.name)}
+
+        <button
+            type="button"
+            id="remove-attachment"
+        >
+            ×
+        </button>
+    `;
+
+
+    document
+        .getElementById(
+            "remove-attachment"
+        )
+        ?.addEventListener(
+            "click",
+            () => {
+
+                pendingAttachment =
+                    null;
+
+
+                if (fileInput) {
+
+                    fileInput.value =
+                        "";
+                }
+
+
+                attachmentPreview.innerHTML =
+                    "";
+            }
+        );
 }
 
 
-/* =========================================================
-   MENU BUTTON
-   ========================================================= */
+fileInput?.addEventListener(
+    "change",
+    () => {
 
-menuBtn?.addEventListener(
-    "click",
-    event => {
+        const file =
+            fileInput.files?.[0];
 
-        event.preventDefault();
 
-        event.stopPropagation();
-
-        toggleSidebar();
-
+        setAttachment(
+            file
+        );
     }
 );
 
 
 /* =========================================================
-   CLOSE SIDEBAR OUTSIDE
+   FUNCTIONS
    ========================================================= */
 
-document.addEventListener(
-    "click",
-    event => {
+functionsPanel
+    .querySelectorAll(
+        ".nandu-function-item"
+    )
+    .forEach(
+        item => {
 
-        if (
-            window.innerWidth >
-            768
-        ) {
+            item.addEventListener(
+                "click",
+                async () => {
 
-            return;
-        }
-
-
-        if (
-            !sidebar ||
-            !sidebar.classList.contains(
-                "open"
-            )
-        ) {
-
-            return;
-        }
+                    const tool =
+                        item.dataset.tool;
 
 
-        const insideSidebar =
-            sidebar.contains(
-                event.target
+                    /* CAMERA */
+
+                    if (
+                        tool ===
+                        "camera"
+                    ) {
+
+                        closeFunctionsPanel();
+
+                        openCamera();
+
+                        return;
+                    }
+
+
+                    /* IMAGES */
+
+                    if (
+                        tool ===
+                        "gallery"
+                    ) {
+
+                        closeFunctionsPanel();
+
+
+                        const picker =
+                            document.createElement(
+                                "input"
+                            );
+
+
+                        picker.type =
+                            "file";
+
+
+                        picker.accept =
+                            "image/*";
+
+
+                        picker.onchange =
+                            () => {
+
+                                const file =
+                                    picker.files?.[0];
+
+
+                                setAttachment(
+                                    file
+                                );
+                            };
+
+
+                        picker.click();
+
+                        return;
+                    }
+
+
+                    /* FILES */
+
+                    if (
+                        tool ===
+                        "files"
+                    ) {
+
+                        closeFunctionsPanel();
+
+                        fileInput?.click();
+
+                        return;
+                    }
+
+
+                    /* DRIVE */
+
+                    if (
+                        tool ===
+                        "drive"
+                    ) {
+
+                        alert(
+                            "Google Drive ke liye Google OAuth / Drive API connect karna hoga."
+                        );
+
+                        return;
+                    }
+
+
+                    /* SEARCH */
+
+                    if (
+                        tool ===
+                        "search"
+                    ) {
+
+                        const searchBox =
+                            functionsPanel
+                                .querySelector(
+                                    ".nandu-search-box"
+                                );
+
+
+                        searchBox?.classList.toggle(
+                            "show"
+                        );
+
+
+                        searchBox
+                            ?.querySelector(
+                                ".nandu-search-input"
+                            )
+                            ?.focus();
+
+
+                        return;
+                    }
+
+
+                    /* CODE */
+
+                    if (
+                        tool ===
+                        "code"
+                    ) {
+
+                        if (input) {
+
+                            input.value =
+                                "Help me write, explain, debug or improve this code:";
+
+                            input.focus();
+                        }
+
+
+                        closeFunctionsPanel();
+
+                        return;
+                    }
+
+
+                    /* LEARN */
+
+                    if (
+                        tool ===
+                        "learn"
+                    ) {
+
+                        if (input) {
+
+                            input.value =
+                                "Explain this topic to me step by step in simple language:";
+
+                            input.focus();
+                        }
+
+
+                        closeFunctionsPanel();
+
+                        return;
+                    }
+
+
+                    /* SETTINGS */
+
+                    if (
+                        tool ===
+                        "settings"
+                    ) {
+
+                        closeFunctionsPanel();
+
+                        openSettings();
+
+                        return;
+                    }
+                }
             );
-
-
-        const menuClicked =
-            menuBtn?.contains(
-                event.target
-            );
-
-
-        if (
-            !insideSidebar &&
-            !menuClicked
-        ) {
-
-            sidebar.classList.remove(
-                "open"
-            );
-
         }
+    );
 
+
+/* =========================================================
+   SEARCH
+   ========================================================= */
+
+const searchInput =
+    functionsPanel.querySelector(
+        ".nandu-search-input"
+    );
+
+
+const searchGo =
+    functionsPanel.querySelector(
+        ".nandu-search-go"
+    );
+
+
+function useSearch() {
+
+    const query =
+        searchInput?.value.trim();
+
+
+    if (!query) {
+        return;
     }
+
+
+    if (input) {
+
+        input.value =
+            `Search and explain this for me: ${query}`;
+
+        input.focus();
+    }
+
+
+    closeFunctionsPanel();
+}
+
+
+searchGo?.addEventListener(
+    "click",
+    useSearch
 );
 
 
-/* =========================================================
-   FUNCTIONS PANEL
-   ========================================================= */
+searchInput?.addEventListener(
+    "keydown",
+    e => {
 
-function toggleFunctions(event) {
+        if (
+            e.key ===
+            "Enter"
+        ) {
 
-    if (event) {
+            e.preventDefault();
 
-        event.preventDefault();
-
-        event.stopPropagation();
-
+            useSearch();
+        }
     }
-
-
-    if (!functionsOverlay) {
-        return;
-    }
-
-
-    functionsOverlay.classList.toggle(
-        "show"
-    );
-
-}
-
-
-function closeFunctions() {
-
-    functionsOverlay?.classList.remove(
-        "show"
-    );
-
-}
-
-
-function closeFunctionsOutside(event) {
-
-    if (
-        event.target ===
-        functionsOverlay
-    ) {
-
-        closeFunctions();
-
-    }
-
-}
-
-
-/* =========================================================
-   SEARCH / CODE / LEARN
-   ========================================================= */
-
-function selectTool(tool) {
-
-    currentTool =
-        tool;
-
-
-    closeFunctions();
-
-
-    if (!input) {
-        return;
-    }
-
-
-    if (
-        tool ===
-        "search"
-    ) {
-
-        input.placeholder =
-            "Ask AI Nandu to search for something...";
-
-        input.value =
-            "";
-
-        input.focus();
-
-        return;
-    }
-
-
-    if (
-        tool ===
-        "code"
-    ) {
-
-        input.placeholder =
-            "Ask AI Nandu to write or debug code...";
-
-        input.value =
-            "";
-
-        input.focus();
-
-        return;
-    }
-
-
-    if (
-        tool ===
-        "learn"
-    ) {
-
-        input.placeholder =
-            "What would you like AI Nandu to explain?";
-
-        input.value =
-            "";
-
-        input.focus();
-
-        return;
-    }
-
-}
+);
 
 
 /* =========================================================
    CAMERA
    ========================================================= */
 
-function openCamera() {
+async function openCamera() {
 
-    closeFunctions();
+    cameraModal.classList.add(
+        "show"
+    );
 
 
-    if (!fileInput) {
-        return;
+    try {
+
+        if (
+            !navigator.mediaDevices ||
+            !navigator.mediaDevices.getUserMedia
+        ) {
+
+            throw new Error(
+                "Camera API not supported."
+            );
+        }
+
+
+        cameraStream =
+            await navigator
+                .mediaDevices
+                .getUserMedia({
+
+                    video: {
+
+                        facingMode:
+                            "environment"
+                    },
+
+                    audio:
+                        false
+                });
+
+
+        cameraVideo.srcObject =
+            cameraStream;
+
+
+    } catch (error) {
+
+        cameraModal.classList.remove(
+            "show"
+        );
+
+
+        alert(
+            "Camera open nahi ho saka. Browser me camera permission allow karein."
+        );
+
+
+        console.error(
+            error
+        );
+    }
+}
+
+
+function closeCamera() {
+
+    if (
+        cameraStream
+    ) {
+
+        cameraStream
+            .getTracks()
+            .forEach(
+                track =>
+                    track.stop()
+            );
+
+
+        cameraStream =
+            null;
     }
 
 
-    fileInput.value =
-        "";
+    if (
+        cameraVideo
+    ) {
 
-
-    fileInput.setAttribute(
-        "accept",
-        "image/*"
-    );
-
-
-    /*
-       capture=environment makes
-       supported mobile browsers
-       open the rear camera.
-    */
-
-    fileInput.setAttribute(
-        "capture",
-        "environment"
-    );
-
-
-    fileInput.click();
-
-}
-
-
-/* =========================================================
-   GALLERY
-   ========================================================= */
-
-function openGallery() {
-
-    closeFunctions();
-
-
-    if (!fileInput) {
-        return;
+        cameraVideo.srcObject =
+            null;
     }
 
 
-    fileInput.value =
-        "";
-
-
-    fileInput.setAttribute(
-        "accept",
-        "image/*"
+    cameraModal.classList.remove(
+        "show"
     );
-
-
-    fileInput.removeAttribute(
-        "capture"
-    );
-
-
-    fileInput.click();
-
 }
 
 
-/* =========================================================
-   FILES
-   ========================================================= */
-
-function openFiles() {
-
-    closeFunctions();
-
-
-    if (!fileInput) {
-        return;
-    }
-
-
-    fileInput.value =
-        "";
-
-
-    fileInput.setAttribute(
-        "accept",
-        "image/*,.txt,.md,.json,.csv,.js,.html,.css,.py,.pdf,.doc,.docx,.xls,.xlsx"
+cameraModal
+    .querySelector(
+        ".nandu-camera-cancel"
+    )
+    .addEventListener(
+        "click",
+        closeCamera
     );
 
 
-    fileInput.removeAttribute(
-        "capture"
+cameraModal
+    .querySelector(
+        ".nandu-camera-capture"
+    )
+    .addEventListener(
+        "click",
+        () => {
+
+            if (
+                !cameraVideo.videoWidth
+            ) {
+
+                return;
+            }
+
+
+            const canvas =
+                document.createElement(
+                    "canvas"
+                );
+
+
+            canvas.width =
+                cameraVideo.videoWidth;
+
+
+            canvas.height =
+                cameraVideo.videoHeight;
+
+
+            const ctx =
+                canvas.getContext(
+                    "2d"
+                );
+
+
+            ctx.drawImage(
+                cameraVideo,
+                0,
+                0,
+                canvas.width,
+                canvas.height
+            );
+
+
+            canvas.toBlob(
+                blob => {
+
+                    if (!blob) {
+                        return;
+                    }
+
+
+                    const file =
+                        new File(
+                            [blob],
+                            `camera-photo-${Date.now()}.jpg`,
+                            {
+                                type:
+                                    "image/jpeg"
+                            }
+                        );
+
+
+                    setAttachment(
+                        file
+                    );
+
+
+                    closeCamera();
+                },
+                "image/jpeg",
+                .92
+            );
+        }
     );
-
-
-    fileInput.click();
-
-}
-
-
-/* =========================================================
-   GOOGLE DRIVE
-   ========================================================= */
-
-function openGoogleDrive() {
-
-    closeFunctions();
-
-
-    /*
-       This opens Google Drive.
-
-       Actual Drive file selection/upload
-       requires Google OAuth + Drive API
-       on the backend.
-    */
-
-    window.open(
-        "https://drive.google.com/drive/my-drive",
-        "_blank",
-        "noopener,noreferrer"
-    );
-
-}
 
 
 /* =========================================================
@@ -2836,139 +3988,79 @@ function openGoogleDrive() {
 
 function openSettings() {
 
-    closeFunctions();
-
-
-    settingsOverlay?.classList.add(
-        "show"
-    );
-
-}
-
-
-function closeSettings() {
-
-    settingsOverlay?.classList.remove(
-        "show"
-    );
-
-}
-
-
-function closeSettingsOutside(event) {
-
-    if (
-        event.target ===
-        settingsOverlay
-    ) {
-
-        closeSettings();
-
-    }
-
-}
-
-
-/* =========================================================
-   THEME
-   ========================================================= */
-
-function updateThemeButton() {
-
-    if (!themeToggle) {
-        return;
-    }
-
-
     const dark =
         document.body.classList.contains(
-            "dark-mode"
+            "nandu-theme-dark"
         );
 
 
-    themeToggle.textContent =
-        dark
-            ? "☀️ Light"
-            : "🌙 Dark";
-
-}
-
-
-function toggleTheme() {
-
-    document.body.classList.toggle(
-        "dark-mode"
-    );
-
-
-    const dark =
-        document.body.classList.contains(
-            "dark-mode"
+    const result =
+        confirm(
+            dark
+                ? "Dark mode ON hai. OK dabao Light Mode ke liye."
+                : "Light mode ON hai. OK dabao Dark Mode ke liye."
         );
 
 
-    localStorage.setItem(
-        THEME_KEY,
-        dark
-            ? "dark"
-            : "light"
-    );
+    if (result) {
 
-
-    updateThemeButton();
-
+        toggleTheme();
+    }
 }
 
-
-/* =========================================================
-   LOAD THEME
-   ========================================================= */
 
 function loadTheme() {
 
-    const savedTheme =
+    const theme =
         localStorage.getItem(
             THEME_KEY
         );
 
 
     if (
-        savedTheme ===
+        theme ===
         "dark"
     ) {
 
         document.body.classList.add(
-            "dark-mode"
+            "nandu-theme-dark"
         );
-
-    } else {
-
-        document.body.classList.remove(
-            "dark-mode"
-        );
-
     }
+}
 
 
-    updateThemeButton();
+function toggleTheme() {
 
+    document.body.classList.toggle(
+        "nandu-theme-dark"
+    );
+
+
+    localStorage.setItem(
+        THEME_KEY,
+
+        document.body.classList.contains(
+            "nandu-theme-dark"
+        )
+            ? "dark"
+            : "light"
+    );
 }
 
 
 /* =========================================================
-   SEND BUTTON
+   SEND BUTTON FIX
    ========================================================= */
 
 sendBtn?.addEventListener(
     "click",
-    event => {
+    e => {
 
-        event.preventDefault();
+        e.preventDefault();
 
-        event.stopPropagation();
+        e.stopPropagation();
 
         sendMessage();
-
     }
 );
 
@@ -2979,50 +4071,11 @@ sendBtn?.addEventListener(
 
 stopBtn?.addEventListener(
     "click",
-    event => {
+    e => {
 
-        event.preventDefault();
-
-        event.stopPropagation();
+        e.preventDefault();
 
         stopGeneration();
-
-    }
-);
-
-
-/* =========================================================
-   NEW CHAT BUTTON
-   ========================================================= */
-
-newChatBtn?.addEventListener(
-    "click",
-    event => {
-
-        event.preventDefault();
-
-        clearAll();
-
-        sidebar?.classList.remove(
-            "open"
-        );
-
-    }
-);
-
-
-/* =========================================================
-   CLEAR CHAT BUTTON
-   ========================================================= */
-
-clearChatBtn?.addEventListener(
-    "click",
-    event => {
-
-        event.preventDefault();
-
-        clearAll();
-
     }
 );
 
@@ -3033,31 +4086,30 @@ clearChatBtn?.addEventListener(
 
 input?.addEventListener(
     "keydown",
-    event => {
+    e => {
 
         if (
-            event.key ===
+            e.key ===
             "Enter" &&
-            !event.shiftKey
+            !e.shiftKey
         ) {
 
-            event.preventDefault();
+            e.preventDefault();
 
 
-            if (!isSending) {
+            if (
+                !isSending
+            ) {
 
                 sendMessage();
-
             }
-
         }
-
     }
 );
 
 
 /* =========================================================
-   AUTO RESIZE TEXTAREA
+   AUTO RESIZE INPUT
    ========================================================= */
 
 input?.addEventListener(
@@ -3073,7 +4125,111 @@ input?.addEventListener(
                 input.scrollHeight,
                 160
             ) + "px";
+    }
+);
 
+
+/* =========================================================
+   NEW CHAT
+   ========================================================= */
+
+newChatBtn?.addEventListener(
+    "click",
+    e => {
+
+        e.preventDefault();
+
+        clearAll();
+    }
+);
+
+
+/* =========================================================
+   CLEAR CHAT
+   ========================================================= */
+
+clearChatBtn?.addEventListener(
+    "click",
+    e => {
+
+        e.preventDefault();
+
+        clearAll();
+    }
+);
+
+
+/* =========================================================
+   MOBILE MENU FIX
+   ========================================================= */
+
+menuBtn?.addEventListener(
+    "click",
+    e => {
+
+        e.preventDefault();
+
+        e.stopPropagation();
+
+
+        if (!sidebar) {
+            return;
+        }
+
+
+        sidebar.classList.toggle(
+            "open"
+        );
+    }
+);
+
+
+/* =========================================================
+   CLOSE MOBILE SIDEBAR
+   ========================================================= */
+
+document.addEventListener(
+    "click",
+    e => {
+
+        if (
+            window.innerWidth <=
+            768 &&
+            sidebar &&
+            sidebar.classList.contains(
+                "open"
+            )
+        ) {
+
+            const clickedInside =
+                sidebar.contains(
+                    e.target
+                );
+
+
+            const clickedMenu =
+                menuBtn?.contains(
+                    e.target
+                );
+
+
+            const clickedFunctions =
+                functionsButton?.contains(
+                    e.target
+                );
+
+
+            if (
+                !clickedInside &&
+                !clickedMenu &&
+                !clickedFunctions
+            ) {
+
+                sidebar.classList.remove(
+                    "open"
+                );
+            }
+        }
     }
 );
 
@@ -3084,103 +4240,46 @@ input?.addEventListener(
 
 document.addEventListener(
     "keydown",
-    event => {
+    e => {
 
         if (
-            event.key !==
+            e.key ===
             "Escape"
         ) {
 
-            return;
+            closeFunctionsPanel();
+
+            closeCamera();
+
+            sidebar?.classList.remove(
+                "open"
+            );
         }
-
-
-        closeFunctions();
-
-        closeSettings();
-
-        sidebar?.classList.remove(
-            "open"
-        );
-
     }
 );
 
 
 /* =========================================================
-   FORM SUBMIT PROTECTION
+   PREVENT FORM RELOAD
    ========================================================= */
 
 input?.closest(
     "form"
 )?.addEventListener(
     "submit",
-    event => {
+    e => {
 
-        event.preventDefault();
+        e.preventDefault();
 
 
-        if (!isSending) {
+        if (
+            !isSending
+        ) {
 
             sendMessage();
-
         }
-
     }
 );
-
-
-/* =========================================================
-   GLOBAL FUNCTIONS
-   ---------------------------------------------------------
-   These are required because your HTML uses
-   onclick="..." directly.
-   ========================================================= */
-
-window.toggleFunctions =
-    toggleFunctions;
-
-window.closeFunctions =
-    closeFunctions;
-
-window.closeFunctionsOutside =
-    closeFunctionsOutside;
-
-window.openCamera =
-    openCamera;
-
-window.openGallery =
-    openGallery;
-
-window.openFiles =
-    openFiles;
-
-window.openGoogleDrive =
-    openGoogleDrive;
-
-window.selectTool =
-    selectTool;
-
-window.openSettings =
-    openSettings;
-
-window.closeSettings =
-    closeSettings;
-
-window.closeSettingsOutside =
-    closeSettingsOutside;
-
-window.toggleTheme =
-    toggleTheme;
-
-window.sendMessage =
-    sendMessage;
-
-window.stopGeneration =
-    stopGeneration;
-
-window.clearAll =
-    clearAll;
 
 
 /* =========================================================
@@ -3189,7 +4288,7 @@ window.clearAll =
 
 loadTheme();
 
-loadConversation();
+loadSaved();
 
 renderConversation();
 
@@ -3199,5 +4298,13 @@ input?.focus();
 
 
 console.log(
-    "✓ AI Nandu FINAL script.js loaded successfully."
+    "✓ JARVIS / AI NANDU FINAL frontend loaded successfully."
+);
+
+console.log(
+    "✓ Top Right Functions Button loaded."
+);
+
+console.log(
+    "✓ Camera / Images / Files / Drive / Search / Code / Learn / Settings loaded."
 );
