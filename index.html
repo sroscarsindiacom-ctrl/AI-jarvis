@@ -989,7 +989,72 @@ body{
     }
 
     .input-area{
-        padding:0 8px 8px;
+        position:fixed;
+        left:0;
+        right:0;
+        bottom:0;
+        z-index:6000;
+        padding:0 8px max(6px, env(safe-area-inset-bottom, 0px));
+        background:transparent;
+    }
+
+    .input-card{
+        width:100%;
+        max-width:none;
+        min-height:58px;
+        height:58px;
+        margin:0;
+        padding:8px 10px;
+        gap:7px;
+        align-items:center;
+        border:1px solid #29405a;
+        border-radius:30px;
+        background:#071321;
+        box-shadow:0 5px 22px rgba(0,0,0,.30);
+    }
+
+    #user-input{
+        min-height:38px;
+        max-height:38px;
+        padding:9px 2px;
+        font-size:14px;
+        line-height:20px;
+        overflow:hidden;
+    }
+
+    #user-input::placeholder{
+        color:#7f8da0;
+    }
+
+    .attach-btn{
+        width:38px;
+        height:38px;
+        min-width:38px;
+        border-radius:50%;
+        background:#102b4a;
+    }
+
+    .send-btn{
+        width:40px;
+        height:40px;
+        min-width:40px;
+        flex-shrink:0;
+        border-radius:50%;
+    }
+
+    .stop-btn{
+        width:40px;
+        height:40px;
+        min-width:40px;
+        border-radius:50%;
+    }
+
+    .footer-note{
+        display:none;
+    }
+
+    .chat-box{
+        padding:20px 12px 88px;
     }
 }
 </style>
@@ -1066,45 +1131,6 @@ body{
 
         </div>
 
-        <div class="sidebar-bottom">
-
-            <div class="account">
-
-                <div class="account-top">
-
-                    <div class="account-avatar">S</div>
-
-                    <div>
-                        <div class="account-name">Samir</div>
-                        <div class="account-email">samir@example.com</div>
-                    </div>
-
-                </div>
-
-                <div class="plan">
-
-                    <div class="plan-row">
-                        <span>AI-Jarvis Pro</span>
-                        <span class="upgrade">Upgrade</span>
-                    </div>
-
-                    <div style="color:#8996a8;margin-bottom:6px;">
-                        Messages this month
-                    </div>
-
-                    <div style="font-size:10px;margin-bottom:7px;">
-                        234 / 1,000
-                    </div>
-
-                    <div class="progress">
-                        <span></span>
-                    </div>
-
-                </div>
-
-            </div>
-
-        </div>
 
     </aside>
 
