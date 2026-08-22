@@ -452,40 +452,42 @@ function getSpecialAnswer(text, language, memory) {
         value === "aap kon ho" ||
         value === "aap kaun ho"
     ) {
-        if (language === "Hindi") {
-            return "मैं My AI Assistant हूँ।";
-        }
-
-        if (language === "English") {
-            return "I am My AI Assistant.";
-        }
-
-        return "Main My AI Assistant hoon.";
-    }
-
-    // ==================================================
-    // WHAT ARE YOU
-    // ==================================================
-
-    if (
-        value === "what are you" ||
-        value === "tum kya ho" ||
-        value === "aap kya ho"
-    ) {
-        if (language === "Hindi") {
-            return "मैं एक AI assistant हूँ।";
-        }
-
-        if (language === "English") {
-            return "I am an AI assistant.";
-        }
-
-        return "Main ek AI assistant hoon.";
-    }
-
-    return null;
+       if (language === "Hindi") {
+    return "मैं JARVIS हूँ।";
 }
 
+if (language === "English") {
+    return "I am JARVIS.";
+}
+
+return "Main JARVIS hoon.";
+    }
+
+  // ==================================================
+// WHO CREATED YOU
+// ==================================================
+
+if (
+    value === "who created you" ||
+    value === "who made you" ||
+    value === "who is your creator" ||
+    value === "tumhe kisne banaya" ||
+    value === "tumko kisne banaya" ||
+    value === "tumhe kisne banaya hai" ||
+    value === "tumko kisne banaya hai" ||
+    value === "aapko kisne banaya" ||
+    value === "aapko kisne banaya hai"
+) {
+    if (language === "Hindi") {
+        return "मुझे Samir ने बनाया है।";
+    }
+
+    if (language === "English") {
+        return "Samir created me.";
+    }
+
+    return "Mujhe Samir ne banaya hai.";
+}
 // ======================================================
 // WRONG SCRIPT CHECK
 // ======================================================
